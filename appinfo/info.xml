@@ -5,7 +5,7 @@
     <name>Followme</name>
     <summary>Permet d&#39;enregistrer des liens d&#39;information à suivre</summary>
     <description><![CDATA[Un espace de partage de lien à lire pour tous les utilisateurs.]]></description>
-    <version>1.2.0</version>
+    <version>1.2.1</version>
     <licence>agpl</licence>
     <author mail="contact@adacis.net" homepage="https://www.adacis.net">ADACIS</author>
     <namespace>Followme</namespace>
