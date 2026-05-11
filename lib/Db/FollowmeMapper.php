@@ -45,7 +45,7 @@ Class FollowmeMapper extends QBMapper {
 			->groupBy('categorie')
 			->from($this->getTableName());
 
-		$cursor = $qb->execute();
+		$cursor = $qb->executeQuery();
 		$array = array();
 		foreach ( $cursor as $id => $value )
 		{
@@ -75,7 +75,7 @@ Class FollowmeMapper extends QBMapper {
 		    ->setParameter(4, $categorie)
             ->setParameter(5, $title)
 		;
-		$qb->execute();
+		$qb->executeUpdate();
 		return "ok";
 	}
 
@@ -93,7 +93,7 @@ Class FollowmeMapper extends QBMapper {
 			    ->set('u.title', $qb->createNamedParameter($title))
 				->where('u.id = :id')
 				->setParameter('id', $idArticle);
-		$qb->execute();
+		$qb->executeUpdate();
 		return "ok";
 	}
 
@@ -105,7 +105,7 @@ Class FollowmeMapper extends QBMapper {
 		$qb->delete($this->getTableName())
         	->where('id = :id')
         	->setParameter('id',$id);
-		$qb->execute();
+		$qb->executeQuery();
 		return "ok";
 	}
 
@@ -136,7 +136,7 @@ Class FollowmeMapper extends QBMapper {
 	*/
 	private function executionSql($sql){
 		$res = $this->db->prepare($sql);
-		$res->execute();
+		$res->executeQuery();
 		$ret = $res->fetchall(2);
 		return $ret;
 	}
@@ -147,7 +147,7 @@ Class FollowmeMapper extends QBMapper {
 	*/
 	private function executionSqlParam($sql, $param){
 		$res = $this->db->prepare($sql);
-		$res->execute($param);
+		$res->executeQuery($param);
 		$ret = $res->fetchall(2);
 		return $ret;
 	}

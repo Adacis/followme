@@ -21,7 +21,7 @@ class Request {
                $qb->expr()->eq('uid', $qb->createNamedParameter($userId, IQueryBuilder::PARAM_STR))
            );
 
-        $cursor = $qb->execute();
+        $cursor = $qb->executeQuery();
         $row = $cursor->fetch();
         $cursor->closeCursor();
 
