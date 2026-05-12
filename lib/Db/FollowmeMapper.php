@@ -75,7 +75,7 @@ Class FollowmeMapper extends QBMapper {
 		    ->setParameter(4, $categorie)
             ->setParameter(5, $title)
 		;
-		$qb->executeUpdate();
+		$qb->executeStatement();
 		return "ok";
 	}
 
@@ -93,7 +93,7 @@ Class FollowmeMapper extends QBMapper {
 			    ->set('u.title', $qb->createNamedParameter($title))
 				->where('u.id = :id')
 				->setParameter('id', $idArticle);
-		$qb->executeUpdate();
+		$qb->executeStatement();
 		return "ok";
 	}
 
@@ -105,7 +105,7 @@ Class FollowmeMapper extends QBMapper {
 		$qb->delete($this->getTableName())
         	->where('id = :id')
         	->setParameter('id',$id);
-		$qb->executeQuery();
+		$qb->executeStatement();
 		return "ok";
 	}
 
@@ -136,7 +136,7 @@ Class FollowmeMapper extends QBMapper {
 	*/
 	private function executionSql($sql){
 		$res = $this->db->prepare($sql);
-		$res->executeQuery();
+		$res->execute();
 		$ret = $res->fetchall(2);
 		return $ret;
 	}
@@ -147,7 +147,7 @@ Class FollowmeMapper extends QBMapper {
 	*/
 	private function executionSqlParam($sql, $param){
 		$res = $this->db->prepare($sql);
-		$res->executeQuery($param);
+		$res->execute($param);
 		$ret = $res->fetchall(2);
 		return $ret;
 	}

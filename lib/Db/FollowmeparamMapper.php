@@ -73,7 +73,7 @@ Class FollowmeparamMapper extends QBMapper {
 	*/
 	private function executionSql($sql){
 		$res = $this->db->prepare($sql);
-		$res->executeQuery();
+		$res->execute();
 		$ret = $res->fetchall(2);
 		return $ret;
 	}
@@ -84,7 +84,7 @@ Class FollowmeparamMapper extends QBMapper {
 	*/
 	private function executionSqlParam($sql, $param){
 		$res = $this->db->prepare($sql);
-		$res->executeQuery($param);
+		$res->execute($param);
 		$ret = $res->fetchall(2);
 		return $ret;
 	}
@@ -94,7 +94,7 @@ Class FollowmeparamMapper extends QBMapper {
 	*/
 	private function insertSqlParam($sql, $param){
 		$res = $this->db->prepare($sql);
-		$res->executeUpdate($param);
+		$res->execute($param);
 	}
 
 }
