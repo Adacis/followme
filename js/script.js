@@ -281,8 +281,8 @@ var refreshListener = function () {
 };
 
 function createDeleteListener(element) {
-	if (element.attr('DeleteListener') !== "1") {
-		element.attr('DeleteListener', "1");
+	if (element.getAttribute('DeleteListener') !== "1") {
+		element.setAttribute('DeleteListener', "1");
 		element.addEventListener("click", function (e) {
 
 			const btn = e.target.closest(".supprfollowme");
@@ -372,7 +372,7 @@ function createEditListener(element) {
 }
 
 function clearAllActus() {
-	document.getElementById('actufollowme').empty();
+	document.getElementById('actufollowme').innerHTML = '';
 }
 
 //---------------------MODAL 
