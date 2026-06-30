@@ -1,432 +1,488 @@
-	//Framework Nextcloud
-	var baseUrl = OC.generateUrl('/apps/followme');
+//Framework Nextcloud
+var baseUrl = OC.generateUrl('/apps/followme');
 
-	//Var
-	var actuFollowme = $("#actufollowme");
-	var getNbArticleByUser = $("#getNbArticleByUser tbody");
-	var myInterval;
+//Var
+var actuFollowme = document.getElementById("actufollowme");
+var getNbArticleByUser = document.querySelector("#getNbArticleByUser tbody");
+var myInterval;
 
-	//initialisation des dates : 
-	var tdate = new Date();
-	debutmois = (new Date(tdate.getFullYear(), tdate.getMonth(), 1, 1, 1, 1)).toISOString().substr(0, 10);
-	finmois = (new Date(tdate.getFullYear(), tdate.getMonth() + 1, 0, 23, 59, 59)).toISOString().substr(0, 10);
-	anneeencours = (new Date(tdate.getFullYear(), tdate.getMonth() + 1, 0, 23, 59, 59)).toISOString().substr(0, 4);
-	$('#intervaldebut').val(debutmois);
-	$('#intervalfin').val(finmois);
-	$('#topposter').val(anneeencours);
+//initialisation des dates : 
+var tdate = new Date();
+debutmois = (new Date(tdate.getFullYear(), tdate.getMonth(), 1, 1, 1, 1)).toISOString().substr(0, 10);
+finmois = (new Date(tdate.getFullYear(), tdate.getMonth() + 1, 0, 23, 59, 59)).toISOString().substr(0, 10);
+anneeencours = (new Date(tdate.getFullYear(), tdate.getMonth() + 1, 0, 23, 59, 59)).toISOString().substr(0, 4);
+document.getElementById('intervaldebut').value = debutmois;
+document.getElementById('intervalfin').value = finmois;
+document.getElementById('topposter').value = anneeencours;
 
-	//Function pour mettre en timestamp
-	function getTimestamp(newDate){
-		return (new Date(newDate).getTime());
+//Function pour mettre en timestamp
+function getTimestamp(newDate) {
+	return (new Date(newDate).getTime());
+}
+
+//Function pour mettre en format date correct depuis un timestamp
+function format_date(value) {
+	date = new Date(value * 1000);
+	month = date.getMonth();
+	month = month + 1;
+	if (month < 10) month = "0" + month;
+	year = date.getFullYear();
+	day = date.getDate();
+	return day + "/" + month + "/" + year;
+}
+
+// recharger l'affichage de l'actualité qui vient d'être modifiée
+function updateActualiteDOM(actufolowme, resp) {
+
+	//Trunck des liens
+	var reslien;
+	if (resp.lien.length > 29) {
+		reslien = resp.lien.substring(0, 30) + '...';
+	} else {
+		reslien = resp.lien;
 	}
 
-	//Function pour mettre en format date correct depuis un timestamp
-	function format_date(value) {
-		date = new Date(value*1000);
-		month=date.getMonth();
-		month=month+1;
-		if (month<10) month="0" + month;
-		year=date.getFullYear();
-		day=date.getDate();
-		return day+"/"+month+"/"+year;
-	}
+	var actualite = document.createElement("div");
+	actualite.setAttribute('data-actualite-id', resp.id);
+	actualite.setAttribute('data-actualite-date', resp.date);
+	actualite.setAttribute('class', 'actualite');
 
-	// recharger l'affichage de l'actualité qui vient d'être modifiée
-	function updateActualiteDOM(actufolowme, resp){
+	var actualiteContent = document.createElement("div");
+	actualiteContent.setAttribute('class', 'actualite-content');
 
-		//Trunck des liens
-		var reslien;
-		if(resp.lien.length > 29){
-			reslien=resp.lien.substring(0, 30)+'...';
-		}else{
-			reslien=resp.lien;
-		}
+	var actualiteSection = document.createElement("div");
+	actualiteSection.setAttribute('class', 'actualite-section');
 
-		var actualite = document.createElement("div");
-		actualite.setAttribute('data-actualite-id', resp.id);
-		actualite.setAttribute('data-actualite-date', resp.date);
-		actualite.setAttribute('class', 'actualite');
-		
-		var actualiteContent = document.createElement("div");
-		actualiteContent.setAttribute('class', 'actualite-content');
+	var actualiteDate = document.createElement("p");
+	actualiteDate.append(document.createTextNode(format_date(resp.date)));
+	actualiteDate.setAttribute('class', 'date');
 
-		var actualiteSection = document.createElement("div");
-		actualiteSection.setAttribute('class', 'actualite-section');
+	var actualiteLien = document.createElement("a");
+	actualiteLien.setAttribute('href', resp.lien);
+	actualiteLien.setAttribute('class', 'lien');
+	actualiteLien.append(document.createTextNode(reslien));
+	var spanModif = document.createElement("span");
+	spanModif.setAttribute('class', 'modiffollowme jam jam-pencil');
+	var spanSupp = document.createElement("span");
+	spanSupp.setAttribute('class', 'supprfollowme jam jam-trash');
 
-		var actualiteDate = document.createElement("p");
-		actualiteDate.append(document.createTextNode(format_date(resp.date)));
-		actualiteDate.setAttribute('class', 'date');
+	actualiteSection.append(actualiteDate);
+	actualiteSection.append(actualiteLien);
 
-		var actualiteLien = document.createElement("a");
-		actualiteLien.setAttribute('href', resp.lien);
-		actualiteLien.setAttribute('class', 'lien');
-		actualiteLien.append(document.createTextNode(reslien));
-		var spanModif = document.createElement("span");
-		spanModif.setAttribute('class', 'modiffollowme jam jam-pencil');
-		var spanSupp = document.createElement("span");
-		spanSupp.setAttribute('class', 'supprfollowme jam jam-trash');
+	actualiteSection.append(spanModif);
+	actualiteSection.append(spanSupp);
 
-		actualiteSection.append(actualiteDate);
-		actualiteSection.append(actualiteLien);
+	var actualiteTitle = document.createElement("div");
+	actualiteTitle.setAttribute('class', 'actualiteTitle');
+	var pTitle = document.createElement("p");
+	pTitle.append(document.createTextNode(resp.title ?? ''));
 
-		actualiteSection.append(spanModif);
-		actualiteSection.append(spanSupp);
+	var actualiteDescription = document.createElement("div");
+	actualiteDescription.setAttribute('class', 'actualiteDescription');
+	var pDescription = document.createElement("p");
+	pDescription.append(document.createTextNode(resp.description));
 
-        var actualiteTitle = document.createElement("div");
-        actualiteTitle.setAttribute('class', 'actualiteTitle');
-        var pTitle = document.createElement("p");
-        pTitle.append(document.createTextNode(resp.title ?? ''));
+	var actualiteAuteur = document.createElement("p");
+	actualiteAuteur.append(document.createTextNode(resp.utilisateur));
+	actualiteAuteur.setAttribute('class', 'auteur');
 
-		var actualiteDescription = document.createElement("div");
-		actualiteDescription.setAttribute('class', 'actualiteDescription');
-		var pDescription = document.createElement("p");
-		pDescription.append(document.createTextNode(resp.description));
-		
-		var actualiteAuteur = document.createElement("p");
-		actualiteAuteur.append(document.createTextNode(resp.utilisateur));
-		actualiteAuteur.setAttribute('class', 'auteur');
+	actualiteDescription.append(pTitle);
+	actualiteDescription.append(pDescription);
+	actualiteDescription.append(actualiteAuteur);
 
-        actualiteDescription.append(pTitle);
-		actualiteDescription.append(pDescription);
-		actualiteDescription.append(actualiteAuteur);
+	var actualiteCategorie = document.createElement("div");
+	actualiteCategorie.setAttribute('class', 'actualiteCategorie');
+	var pCategorie = document.createElement("span");
+	pCategorie.setAttribute('class', 'tag');
+	pCategorie.append(document.createTextNode(resp.categorie));
 
-		var actualiteCategorie = document.createElement("div");
-		actualiteCategorie.setAttribute('class', 'actualiteCategorie');
-		var pCategorie = document.createElement("span");
-		pCategorie.setAttribute('class', 'tag');
-		pCategorie.append(document.createTextNode(resp.categorie));
+	actualiteCategorie.append(pCategorie)
 
-		actualiteCategorie.append(pCategorie)
+	actualiteContent.append(actualiteSection);
+	actualiteContent.append(actualiteDescription);
+	actualiteContent.append(actualiteCategorie);
 
-		actualiteContent.append(actualiteSection);
-		actualiteContent.append(actualiteDescription);
-		actualiteContent.append(actualiteCategorie);
+	actualite.append(actualiteContent);
 
-		actualite.append(actualiteContent);
-
-		actufolowme.append(actualite);
-	}
+	actufolowme.append(actualite);
+}
 
 
-	//Rafraichissement de l'affichage
-	//TODO AJOUTER LES CATEGORIES EN BDD
-	var refresh = function(baseUrl, actuFollowme) { 
+//Rafraichissement de l'affichage
+//TODO AJOUTER LES CATEGORIES EN BDD
+var refresh = function (baseUrl, actuFollowme) {
 
-		//Affichage mensuel des actus
-		var interval = {
-		    intervaldebut: String(getTimestamp($('#intervaldebut').val())/1000),
-		    intervalfin: String(getTimestamp($('#intervalfin').val())/1000),
-		};
-
-		//Refresh des articles
-		$.ajax({
-			url: baseUrl+'/showActu',
-			type: 'POST',
-			contentType: 'application/json',
-		    data: JSON.stringify(interval)
-		}).done(function (response) {
-			var actufolowme = document.getElementById('actufollowme')
-			actufolowme.innerHTML = "";
-			$.each(response, function(arrayID, myresp) {
-				updateActualiteDOM(actufolowme,myresp);
-			});
-		}).fail(function (response, code) {
-			console.log(code);
-		});
-
-		recupererTopPoster();
-
-		//Refresh des catégories
-		//Ajout catégorie à modifier à l'avenir
-		$('#categoriefollowme').html('');
-		$('#categoriefollowme').append('<option value="News">📰 News</option>');
-		$('#categoriefollowme').append('<option value="Vulnérabilité">🛑 Vulnérabilité</option>');
-		$('#categoriefollowme').append('<option value="Menace">⚠️ Menace</option>');
-		$('#categoriefollowme').append('<option value="Protection des données">🔒 Protection des données</option>');
-		$('#categoriefollowme').append('<option value="Outil">🔨 Outil</option>');
-		$('#categoriefollowme').append('<option value="Guide">📍 Guide</option>');
-		$('#categoriefollowme').append('<option value="Vidéos">🎞 Vidéos</option>');
-		$('#categoriefollowme').append('<option value="Numérique Responsable">⌨️ Numérique Responsable</option>');
-		$('#categoriefollowme').append('<option value="IA">🧠 IA</option>');
-
-		//RefreshListener
-		refreshListener();
-	}
-
-	function recupererTopPoster(){
-		var myTopPoster = {
-		    year: $('#topposter').val()
-		}
-
-		//Refresh des Top poster
-		$.ajax({
-			url: baseUrl+'/getNbArticleByUser',
-			type: 'POST',
-			contentType: 'application/json',
-			data: JSON.stringify(myTopPoster)
-		}).done(function (response) {
-			getNbArticleByUser.html('');
-			$.each(response, function(arrayID, myresp) {
-				getNbArticleByUser.append("<tr><td>"+ myresp.utilisateur +"</td><td>"+myresp.annee+"</td><td>"+myresp.count+"</td></tr>");
-			});
-		}).fail(function (response, code) {
-			console.log(code);
-		});
-	}
-
-	// Récupération d'une page html
-	// function recupererPageHtml(link){
-	// 	var resGetActuDom;
-	// 	$.ajax({
-	// 	  url: link,
-	// 	  async: false
-	// 	}).done(function( myresp ) {
-	// 		console.log(myresp);
-	// 	   //resGetActuDom = data
-	// 	});
-	// 	return resGetActuDom;
-	// }
-
-	// function recupererPageHtml(link){
-	// 	const request = new XMLHttpRequest();
-	// 	request.open('GET',link,false);
-	// 	request.onload = function () {
-	// 		if (this.status >= 200 && this.status < 400) {
-	// 			console.log('retour')
-	// 			this.reponse.forEach(function(myresp) {
-	// 				//appendActualiteDOM(myresp);
-	// 				// actualiteDOM = $($.parseHTML(contenuHtml));
-	// 				// updateActualiteDOM(contenuHtml, myresp);
-	// 				//    actuFollowme.append(actualiteDOM);
-	// 				console.log(myresp);
-	// 			});
-	// 		} else {
-	// 			// Response error
-	// 		}
-	// 	};
-	// 	request.send()
-	// }
-
-
-	//Envoie du formulaire de la modal d'édition ou ajout de l'actualité
-	$("#edit_followme").submit(function(e){
-		e.preventDefault();
-		var errorHandler = function(code) {
-			console.log(code);
-		}
-
-		montime=String(getTimestamp($('#datefollowme').val())/1000)
-		var actualite = {
-            date: montime,
-            lien: $('#lienfollowme').val(),
-            description: $('#descriptionfollowme').val(),
-            categorie: $('#categoriefollowme').val(),
-            title: $('#titlefollowme').val(),
-            idArticle: $(this).attr('data-id-article'),
-		};
-
-		var modal_mode = $(this).attr('data-mode');
-		if (modal_mode === "edition") {
-			editerActu(actualite, errorHandler);
-		} else {
-			ajouterActu(actualite, errorHandler);
-		}
-
-	});
-
-	//Function ajax permettant l'enregistrement dans la base de données de l'actualité
-	function ajouterActu(actualite, error) {
-		$.ajax({
-			url: baseUrl + '/insertActu',
-			type: 'POST',
-			contentType: 'application/json',
-			data: JSON.stringify(actualite)
-		}).done(function (response) {
-			console.log(response);
-			refresh(baseUrl, actuFollowme); //Remplacé par rapport aux étudiants
-			fermer_modal();
-		}).fail(function (response, code) {
-			error(response);
-		});
-	}
-
-	//Function ajax permettant la modification dans la base de données de l'actualité
-	function editerActu(actualite, error) {
-		$.ajax({
-			url: baseUrl + '/updateActu',
-			type: 'POST',
-			contentType: 'application/json',
-			data: JSON.stringify(actualite)
-		}).done(function (response) {
-			refresh(baseUrl, actuFollowme);
-			fermer_modal();
-		}).fail(function (response, code) {
-				error(code);
-		});
-	}
-
-
-	//Supprimer une news dans la base de données
-	var refreshListener = function(){
-		createDeleteListener($("#actufollowme"));
-		createEditListener($("#actufollowme"));
+	//Affichage mensuel des actus
+	var interval = {
+		intervaldebut: String(getTimestamp(document.getElementById('intervaldebut').value) / 1000),
+		intervalfin: String(getTimestamp(document.getElementById('intervalfin').value) / 1000),
 	};
 
-	function createDeleteListener (element){
-		if (element.attr('DeleteListener') !== "1") {
-			element.attr('DeleteListener', "1");
-			element.on("click", ".supprfollowme", function(e) {
-				var resp = confirm("Etes-vous sur de vouloir supprimer l'actualité du " + $(this).parents(".actualite").find('.date').html() + ", " + $(this).parents(".actualite").find('.lien').html() +" ?");
-				if (resp == true) {
-					e.preventDefault();
-					var news = {
-						id: $(this).parents(".actualite").attr( "data-actualite-id" )
-				   		};
-					$.ajax({
-						url: baseUrl + '/delActu',
-						type: 'POST',
-						contentType: 'application/json',
-						data: JSON.stringify(news)
-					}).done(function (response) {
-						refresh(baseUrl, actuFollowme);
-					}).fail(function (response, code) {
-						console.log(code);
-					});
+	//Refresh des articles
+	fetch(baseUrl + '/showActu', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify(interval)
+	})
+		.then(response => response.json())
+		.then(response => {
+
+			actuFollowme.innerHTML = "";
+
+			response.forEach(myresp => {
+				updateActualiteDOM(actuFollowme, myresp);
+			});
+
+		})
+		.catch(console.error);
+
+	recupererTopPoster();
+
+	//Refresh des catégories
+	//Ajout catégorie à modifier à l'avenir
+	const categorie = document.getElementById("categoriefollowme");
+
+	categorie.innerHTML = `
+			<option value="News">📰 News</option>
+			<option value="Vulnérabilité">🛑 Vulnérabilité</option>
+			<option value="Menace">⚠️ Menace</option>
+			<option value="Protection des données">🔒 Protection des données</option>
+			<option value="Outil">🔨 Outil</option>
+			<option value="Guide">📍 Guide</option>
+			<option value="Vidéos">🎞 Vidéos</option>
+			<option value="Numérique Responsable">⌨️ Numérique Responsable</option>
+			<option value="IA">🧠 IA</option>
+		`;
+
+	//RefreshListener
+	refreshListener();
+}
+
+async function recupererTopPoster() {
+	const myTopPoster = {
+		year: document.getElementById('topposter').value
+	};
+
+	try {
+		const response = await fetch(baseUrl + '/getNbArticleByUser', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(myTopPoster)
+		});
+
+		if (!response.ok) {
+			throw new Error(`Erreur HTTP : ${response.status}`);
+		}
+
+		const data = await response.json();
+
+		getNbArticleByUser.replaceChildren();
+
+		data.forEach(({ utilisateur, annee, count }) => {
+			const tr = document.createElement('tr');
+
+			[utilisateur, annee, count].forEach(value => {
+				const td = document.createElement('td');
+				td.textContent = value;
+				tr.appendChild(td);
+			});
+
+			getNbArticleByUser.appendChild(tr);
+		});
+
+	} catch (error) {
+		console.error('Erreur lors de la récupération des top posters :', error);
+	}
+}
+
+
+//Envoie du formulaire de la modal d'édition ou ajout de l'actualité
+document.getElementById("edit_followme").addEventListener("submit", function (e) {
+	e.preventDefault();
+
+	const actualite = {
+		date: String(getTimestamp(document.getElementById('datefollowme').value) / 1000),
+		lien: document.getElementById('lienfollowme').value,
+		description: document.getElementById('descriptionfollowme').value,
+		categorie: document.getElementById('categoriefollowme').value,
+		title: document.getElementById('titlefollowme').value,
+		idArticle: this.dataset.idArticle
+	};
+
+	if (this.dataset.mode === "edition") {
+		editerActu(actualite);
+	} else {
+		ajouterActu(actualite);
+	}
+
+});
+
+//Function ajax permettant l'enregistrement dans la base de données de l'actualité
+async function ajouterActu(actualite) {
+	try {
+		const response = await fetch(baseUrl + '/insertActu', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(actualite)
+		});
+
+		if (!response.ok) {
+			throw new Error(`Erreur HTTP : ${response.status}`);
+		}
+
+		const data = await response.json();
+
+		console.log(data);
+
+		refresh(baseUrl, actuFollowme);
+		fermer_modal();
+
+	} catch (err) {
+		console.error("Erreur lors de l'ajout de l'actualité :", err);
+	}
+}
+
+//Function ajax permettant la modification dans la base de données de l'actualité
+async function editerActu(actualite) {
+	try {
+		const response = await fetch(baseUrl + '/updateActu', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(actualite)
+		});
+
+		if (!response.ok) {
+			throw new Error(`Erreur HTTP : ${response.status}`);
+		}
+
+		await response.json();
+
+		refresh(baseUrl, actuFollowme);
+		fermer_modal();
+
+	} catch (err) {
+		console.error("Erreur lors de la modification de l'actualité :", err);
+	}
+}
+
+
+//Supprimer une news dans la base de données
+var refreshListener = function () {
+	createDeleteListener(document.getElementById("actufollowme"));
+	createEditListener(document.getElementById("actufollowme"));
+};
+
+function createDeleteListener(element) {
+	if (element.attr('DeleteListener') !== "1") {
+		element.attr('DeleteListener', "1");
+		element.addEventListener("click", function (e) {
+
+			const btn = e.target.closest(".supprfollowme");
+
+			if (!btn) return;
+
+			const actualite = btn.closest(".actualite");
+
+			const resp = confirm(
+				`Etes-vous sûr de vouloir supprimer l'actualité du ${actualite.querySelector(".date").textContent
+				}, ${actualite.querySelector(".lien").textContent
+				} ?`
+			);
+
+			if (!resp) return;
+
+			e.preventDefault();
+
+			const news = {
+				id: actualite.dataset.actualiteId
+			};
+
+			fetch(baseUrl + "/delActu", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json"
+				},
+				body: JSON.stringify(news)
+			})
+				.then(() => refresh(baseUrl, actuFollowme))
+				.catch(console.error);
+
+		});
+	}
+}
+
+function createEditListener(element) {
+	if (element.dataset.editListener === "1") {
+		return;
+	}
+
+	element.dataset.editListener = "1";
+
+	element.addEventListener("click", async function (e) {
+		const btn = e.target.closest(".modiffollowme");
+
+		if (!btn) {
+			return;
+		}
+
+		e.stopPropagation();
+
+		const actualite = btn.closest(".actualite");
+
+		const news = {
+			id: actualite.dataset.actualiteId
+		};
+
+		try {
+			const response = await fetch(
+				`${baseUrl}/findActu?id=${encodeURIComponent(news.id)}`,
+				{
+					method: "GET",
+					headers: {
+						"Content-Type": "application/json"
+					}
 				}
-			});
+			);
+
+			if (!response.ok) {
+				throw new Error(`Erreur HTTP : ${response.status}`);
+			}
+
+			const actualite = await response.json();
+
+			console.log(actualite);
+
+			setModalMode("edition");
+			setModalInputValues(actualite);
+			updateCaracteresCompteur();
+			afficher_modal();
+
+		} catch (err) {
+			console.error(err);
 		}
-	}
+	});
+}
 
-	function createEditListener(element){
-		if (element.attr('EditListener') !== "1") {
-			element.attr('EditListener', "1");
-			element.on("click", ".modiffollowme",function(e) {
-					e.stopPropagation();
-					var news = {
-					id: $(this).parents(".actualite").attr( "data-actualite-id" )
-				};
+function clearAllActus() {
+	document.getElementById('actufollowme').empty();
+}
 
-				$.ajax({
-					url: baseUrl + '/findActu',
-					type: 'GET',
-					contentType: 'application/json',
-					data: news
-				}).done(function (actualite) {
-					console.log(actualite);
-					setModalMode('edition');
-					setModalInputValues(actualite);
-					updateCaracteresCompteur()
-					afficher_modal();
-				}).fail(function (response, code) {
-					console.log(code);
-				});
-			});
-		}
-	}
+//---------------------MODAL 
 
-	//a supprimer
-	// ajouter une actualité à l'affichage
-	// function appendActualiteDOM(actualite){
-	//   	$.get("templates/content/actualite.html", function(data){
-	//     	var actualiteDOM = $($.parseHTML(data));
-	//     	updateActualiteDOM(actualiteDOM, actualite);
-	//     	$('#actufollowme').append(actualiteDOM);
-	    	
-	//   	})
-	// }
+const modal = document.getElementById("edit_followme");
 
-	function clearAllActus(){
-		$('#actufollowme').empty();
-	}
+// Afficher la modal
+function afficher_modal() {
+	modal.style.display = "block"; // ou "flex" selon ton CSS
+}
 
-	//---------------------MODAL 
+// Fermer la modal
+function fermer_modal() {
+	modal.style.display = "none";
+	clearModal();
+}
 
-	// Afficher la modal
-	function afficher_modal(){
-		$("#edit_followme").show();
-	}
-
-	// Fermer la modal
-	function fermer_modal(){
-		$("#edit_followme").hide();
-		clearModal();
-	}
-	// Ajouter la fonction modal
-	$("#afficher_ajout_modal").click(function () {
-		setModalMode('ajout');
+// Ouvrir la modal en mode ajout
+document.getElementById("afficher_ajout_modal")
+	.addEventListener("click", () => {
+		setModalMode("ajout");
 		afficher_modal();
 	});
 
-	//Fermer modal
-	$(".fermer_modal").click(fermer_modal);
+// Boutons de fermeture
+document.querySelectorAll(".fermer_modal").forEach(button => {
+	button.addEventListener("click", fermer_modal);
+});
 
-	// passer le modal en mode "modification" ou "ajout"
-	function setModalMode(mode){
-		$('#edit_followme').attr('data-mode', mode); // modifié par benjamin
-	}
+// Passer la modal en mode ajout / édition
+function setModalMode(mode) {
+	modal.dataset.mode = mode;
+}
 
-	// initialiser l'interface du modal de modification avec les informations de l'article sélectionné
-	function setModalInputValues(actualite){
-		var modal = $('#edit_followme');
-		modal.attr('data-id-article', actualite.actu.id);
-		var time = moment(actualite.actu.date*1000).format("YYYY-MM-DD");
-        modal.find('#titlefollowme').val(actualite.actu.title)
-        modal.find('#datefollowme').val(time);
-        modal.find('#lienfollowme').val(actualite.actu.lien)
-        modal.find('#descriptionfollowme').val(actualite.actu.description)
-        modal.find('#categoriefollowme').val(actualite.actu.categorie)
-	}
+// Remplir les champs de la modal
+function setModalInputValues(actualite) {
 
-	//Effacer la modal
-	function clearModal() {
-		$('#edit_followme input, #edit_followme textarea').val("");
-		$('#edit_followme #nbCaracteres').text(0);
-	  }
+	modal.dataset.idArticle = actualite.actu.id;
 
-	//Mise à jour du compteur de la modal
-	$("#descriptionfollowme").on("input", function() {
-		updateCaracteresCompteur();
+	const time = moment(actualite.actu.date * 1000).format("YYYY-MM-DD");
+
+	modal.querySelector("#titlefollowme").value = actualite.actu.title ?? "";
+	modal.querySelector("#datefollowme").value = time;
+	modal.querySelector("#lienfollowme").value = actualite.actu.lien ?? "";
+	modal.querySelector("#descriptionfollowme").value = actualite.actu.description ?? "";
+	modal.querySelector("#categoriefollowme").value = actualite.actu.categorie ?? "";
+}
+
+// Vider la modal
+function clearModal() {
+
+	modal.querySelectorAll("input, textarea").forEach(input => {
+		input.value = "";
 	});
 
-	//Mise à jour du compteur de caractère
-	function updateCaracteresCompteur(nb){
-		var nombreCaractere = $('#edit_followme #descriptionfollowme').val().length;
-		$("#edit_followme #nbCaracteres").text(nombreCaractere);
-	}
+	modal.querySelector("#categoriefollowme").selectedIndex = 0;
+	modal.querySelector("#nbCaracteres").textContent = "0";
+}
 
-	$('#topposter').change( function(){
-		recupererTopPoster();
-	});
+// Mise à jour du compteur
+document
+	.getElementById("descriptionfollowme")
+	.addEventListener("input", updateCaracteresCompteur);
+
+// Mettre à jour le compteur de caractères
+function updateCaracteresCompteur() {
+
+	const nombreCaractere =
+		modal.querySelector("#descriptionfollowme").value.length;
+
+	modal.querySelector("#nbCaracteres").textContent = nombreCaractere;
+}
+
+document.getElementById("topposter").addEventListener("change", recupererTopPoster);
 
 // ---------------------------------------------
 
-	$("#edit_followme").hide();
-	$(".modal-background").hide();
-	$("#insertfollowme").hide();
+// Masquer les éléments au chargement
+document.getElementById("edit_followme").style.display = "none";
 
-	//Retour de l'interval qui envoie la news
-	$("#GenerateNews").click(function() {
-		if(!myInterval){
-			goInterval();
-			refresh(baseUrl, actuFollowme);
-		}else if(myInterval){
-			stopRafraichissement();
-			goInterval();
-			refresh(baseUrl, actuFollowme);
-		}
-	});
+document.querySelectorAll(".modal-background").forEach(element => {
+	element.style.display = "none";
+});
 
-	//Function pour lancer le timer de rafraichissement de la page
-	function goInterval(){
-		myInterval = setInterval(function() { refresh(baseUrl, actuFollowme) }, 60000);
+document.getElementById("insertfollowme").style.display = "none";
+
+// Gestion du bouton de rafraîchissement
+document.getElementById("GenerateNews").addEventListener("click", () => {
+
+	if (myInterval) {
+		stopRafraichissement();
 	}
 
-	//Stoper le rafraichissement automatique
-	function stopRafraichissement(){
-		clearInterval(myInterval);
-		myInterval = false;
-	}
-
-
-	refresh(baseUrl, actuFollowme);
 	goInterval();
+	refresh(baseUrl, actuFollowme);
+});
+
+// Lancer le rafraîchissement automatique
+function goInterval() {
+	myInterval = setInterval(() => {
+		refresh(baseUrl, actuFollowme);
+	}, 60000);
+}
+
+// Arrêter le rafraîchissement automatique
+function stopRafraichissement() {
+	clearInterval(myInterval);
+	myInterval = null;
+}
+
+
+refresh(baseUrl, actuFollowme);
+goInterval();
