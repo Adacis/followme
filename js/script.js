@@ -122,7 +122,8 @@ var refresh = function (baseUrl, actuFollowme) {
 	fetch(baseUrl + '/showActu', {
 		method: 'POST',
 		headers: {
-			'Content-Type': 'application/json'
+			'Content-Type': 'application/json',
+			'requesttoken': OC.requestToken,
 		},
 		body: JSON.stringify(interval)
 	})
@@ -169,7 +170,8 @@ async function recupererTopPoster() {
 		const response = await fetch(baseUrl + '/getNbArticleByUser', {
 			method: 'POST',
 			headers: {
-				'Content-Type': 'application/json'
+				'Content-Type': 'application/json',
+				'requesttoken': OC.requestToken,
 			},
 			body: JSON.stringify(myTopPoster)
 		});
@@ -227,7 +229,8 @@ async function ajouterActu(actualite) {
 		const response = await fetch(baseUrl + '/insertActu', {
 			method: 'POST',
 			headers: {
-				'Content-Type': 'application/json'
+				'Content-Type': 'application/json',
+				'requesttoken': OC.requestToken,
 			},
 			body: JSON.stringify(actualite)
 		});
@@ -254,7 +257,8 @@ async function editerActu(actualite) {
 		const response = await fetch(baseUrl + '/updateActu', {
 			method: 'POST',
 			headers: {
-				'Content-Type': 'application/json'
+				'Content-Type': 'application/json',
+				'requesttoken': OC.requestToken,
 			},
 			body: JSON.stringify(actualite)
 		});
@@ -308,7 +312,8 @@ function createDeleteListener(element) {
 			fetch(baseUrl + "/delActu", {
 				method: "POST",
 				headers: {
-					"Content-Type": "application/json"
+					"Content-Type": "application/json",
+					'requesttoken': OC.requestToken,
 				},
 				body: JSON.stringify(news)
 			})
@@ -347,7 +352,8 @@ function createEditListener(element) {
 				{
 					method: "GET",
 					headers: {
-						"Content-Type": "application/json"
+						"Content-Type": "application/json",
+						'requesttoken': OC.requestToken,
 					}
 				}
 			);
@@ -457,7 +463,7 @@ document.querySelectorAll(".modal-background").forEach(element => {
 	element.style.display = "none";
 });
 
-document.getElementById("insertfollowme").style.display = "none";
+// document.getElementById("insertfollowme").style.display = "none";
 
 // Gestion du bouton de rafraîchissement
 document.getElementById("GenerateNews").addEventListener("click", () => {
