@@ -456,6 +456,13 @@ document.getElementById("topposter").addEventListener("change", recupererTopPost
 
 // ---------------------------------------------
 
+// Paramètres
+document.querySelector('#app-settings-header button').addEventListener('click', () => {
+	const settings = document.querySelector('#app-settings-content')
+
+	settings.style.display = settings.style.display === 'none' ? 'block' : 'none'
+})
+
 // Masquer les éléments au chargement
 document.getElementById("edit_followme").style.display = "none";
 

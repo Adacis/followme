@@ -4,7 +4,7 @@
 				data-apps-slide-toggle="#app-settings-content"
 		></button>
 	</div>
-	<div id="app-settings-content">
+	<div id="app-settings-content" style="display: none">
 		<ul>
 			<li><label>Date d&eacute;but : </label><input id="intervaldebut" type="date"/></li>
 			<li><label>Date de Fin : </label><input id="intervalfin" type="date"/></li>
