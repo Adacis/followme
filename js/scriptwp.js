@@ -19,7 +19,8 @@ document.getElementById("Generate").addEventListener("click", async () => {
 		const response = await fetch(baseUrl + "/postActuInterval", {
 			method: "POST",
 			headers: {
-				"Content-Type": "application/json"
+				"Content-Type": "application/json",
+				'requesttoken': OC.requestToken,
 			},
 			body: JSON.stringify(interval)
 		});
@@ -90,7 +91,8 @@ async function envoieWP(contentData) {
         const response = await fetch(baseUrl + "/envoieWP", {
             method: "POST",
             headers: {
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+				'requesttoken': OC.requestToken,
             },
             body: JSON.stringify(payload)
         });
