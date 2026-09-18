@@ -13,7 +13,7 @@
     <category>organization</category>
     <bugs>https://github.com/followme/whereami/issues</bugs>
     <dependencies>
-        <nextcloud min-version="30" max-version="31"/>
+        <nextcloud min-version="30" max-version="36"/>
     </dependencies>
     <navigations>
         <navigation>
