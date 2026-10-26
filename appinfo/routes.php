@@ -11,7 +11,7 @@ return [
 	   ['name' => 'page#findActu', 'url' => '/findActu', 'verb' => 'GET'],
 	   ['name' => 'page#getNbArticleByUser', 'url' => '/getNbArticleByUser', 'verb' => 'POST'],
 	   ['name' => 'page#envoieWP', 'url' => '/envoieWP', 'verb' => 'POST'],
-	   ['name' => 'page#param', 'url' => '/param', 'verb' => 'GET'],
-	   ['name' => 'page#paramInsert', 'url' => '/param', 'verb' => 'POST'],
+	   ['name' => 'admin#index', 'url' => '/param', 'verb' => 'GET'],
+	   ['name' => 'admin#save', 'url' => '/param', 'verb' => 'POST'],
     ]
 ];

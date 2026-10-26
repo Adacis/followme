@@ -1,57 +1,56 @@
 # Followme
-Place this app in **nextcloud/apps/**
 
-#Changelog
-* Correction orthographique
-* Correction de bug sur l'affichage des catégories
-* Moteur de génération de la news letter
+Application Nextcloud de veille collaborative : articles, catégories, classement des contributeurs et export de newsletter Hugo.
 
-## Building the app
+## Compatibilité et installation
 
-The app can be built by using the provided Makefile by running:
+Métadonnées : Nextcloud 30–36, PHP 8.2+. Validation de cette version sur Nextcloud 33 / MariaDB 11.
+L'interface utilise exclusivement JavaScript natif, CSS et les API Nextcloud : aucune compilation ni dépendance JavaScript d'exécution.
 
-    make
+Installer le dossier `followme` dans le répertoire d'applications persistant de Nextcloud, puis exécuter comme utilisateur du serveur web :
 
-This requires the following things to be present:
-* make
-* which
-* tar: for building the archive
-* curl: used if phpunit and composer are not installed to fetch them from the web
-* npm: for building and testing everything JS, only required if a package.json is placed inside the **js/** folder
-
-The make command will install or update Composer dependencies if a composer.json is present and also **npm run build** if a package.json is present in the **js/** folder. The npm **build** script should use local paths for build systems and package managers, so people that simply want to build the app won't need to install npm libraries globally, e.g.:
-
-**package.json**:
-```json
-"scripts": {
-    "test": "node node_modules/gulp-cli/bin/gulp.js karma",
-    "prebuild": "npm install && node_modules/bower/bin/bower install && node_modules/bower/bin/bower update",
-    "build": "node node_modules/gulp-cli/bin/gulp.js"
-}
+```sh
+php occ app:enable followme
 ```
 
+Pour une mise à jour : sauvegarder la base et le dossier de l'application, remplacer les fichiers par l'archive signée, puis exécuter `php occ upgrade`. La migration 1.3.0 conserve les actualités, conserve la dernière valeur des paramètres dupliqués, chiffre les mots de passe existants avec Nextcloud ICrypto et ajoute les index. Les requêtes respectent le préfixe configuré et évitent les fonctions SQL propres à MySQL. Conserver le secret d'instance Nextcloud lors des sauvegardes/restaurations pour pouvoir déchiffrer les paramètres.
 
-## Publish to App Store
+Avec l'image Docker Nextcloud, ne pas monter le checkout dans `/var/www/html/apps` avant l'initialisation : son rsync peut l'effacer. Utiliser le répertoire `custom_apps` et la procédure de montage adaptée à l'installation.
 
-First get an account for the [App Store](http://apps.nextcloud.com/) then run:
+## Paramètres et utilisation
 
-    make && make appstore
+Le menu **Paramètres**, en bas de la navigation, donne aux administrateurs un lien vers **Administration → Followme**. L'accès et l'enregistrement sont contrôlés côté serveur ; les écritures exigent un jeton CSRF.
 
-The archive is located in build/artifacts/appstore and can then be uploaded to the App Store.
+Les intégrations WordPress et Rocket.Chat sont facultatives. Elles utilisent des adresses HTTPS. Les champs de mot de passe restent toujours vides : les laisser vides conserve les secrets existants ; vider l'adresse désactive l'intégration. Les secrets sont chiffrés en base et ne sont pas exposés dans le formulaire. Un échec de notification Rocket.Chat ne supprime pas l'actualité enregistrée.
 
-## Running tests
-You can use the provided Makefile to run all tests by using:
+Tous les utilisateurs connectés peuvent contribuer, modifier et supprimer les actualités de cet espace partagé, comme dans les versions précédentes. L'auteur initial est conservé lors des modifications.
 
-    make test
+La version affichée est fournie par les métadonnées de l'application via Nextcloud. Le classement couvre l'année civile UTC ; les filtres du navigateur comprennent le dernier jour sélectionné. La modale native prend en charge le clavier, Échap et les petits écrans.
 
-This will run the PHP unit and integration tests and if a package.json is present in the **js/** folder will execute **npm run test**
+## Développement et tests
 
-Of course you can also install [PHPUnit](http://phpunit.de/getting-started.html) and use the configurations directly:
+Chaque tâche cloud est isolée : utiliser les checkouts existants, sans worktree supplémentaire sauf demande explicite.
 
-    phpunit -c phpunit.xml
+```sh
+composer install --prefer-dist --no-interaction
+NEXTCLOUD_ROOT=/chemin/vers/nextcloud vendor/bin/phpunit -c phpunit.xml
+node --check js/script.js
+node --check js/admin.js
+make appstore
+```
 
-or:
+Les tests PHPUnit nécessitent une instance Nextcloud installée avec Followme activé ; les tests de base de données annulent leurs données par transaction. Ne pas les exécuter sur une instance de production. Le bootstrap prend `NEXTCLOUD_ROOT` pour les checkouts situés hors du dossier Nextcloud.
 
-    phpunit -c phpunit.integration.xml
+Tests navigateur sur une instance isolée avec les comptes `admin` et `followme-reader` :
 
-for integration tests
+```sh
+npm ci
+npx playwright install chromium
+FOLLOWME_TEST_BASE_URL=http://127.0.0.1:8080 \
+FOLLOWME_TEST_ADMIN_PASSWORD='mot-de-passe-local-admin' \
+FOLLOWME_TEST_READER_PASSWORD='mot-de-passe-local-lecteur' npm run test:browser
+```
+
+`FOLLOWME_BROWSER_EXECUTABLE` permet d'utiliser un Chromium déjà installé. Les captures sont enregistrées sous `build/browser/`. Playwright est une dépendance de test uniquement ; aucun framework n'est chargé par Followme.
+
+La CI installe Nextcloud 33/MariaDB, exécute PHPUnit et les parcours navigateur (CRUD, export, modale bureau/mobile et permissions) et prépare l'archive. Une release GitHub déclenche les mêmes tests, vérifie que le tag correspond à `appinfo/info.xml`, signe l'archive et la publie dans le catalogue Nextcloud. Configurer les secrets GitHub `APP_PRIVATE_KEY`, `APP_CERTIFICATE`, `APPSTORE_TOKEN` avec le certificat de l'application `followme`. Aucune publication ni mise à jour d'un serveur de production n'est déclenchée par un simple push.

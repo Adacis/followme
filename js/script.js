@@ -1,501 +1,182 @@
-//Framework Nextcloud
-var baseUrl = OC.generateUrl('/apps/followme');
-
-//Var
-var actuFollowme = document.getElementById("actufollowme");
-var getNbArticleByUser = document.querySelector("#getNbArticleByUser tbody");
-var myInterval;
-
-//initialisation des dates : 
-var tdate = new Date();
-debutmois = (new Date(tdate.getFullYear(), tdate.getMonth(), 1, 1, 1, 1)).toISOString().substr(0, 10);
-finmois = (new Date(tdate.getFullYear(), tdate.getMonth() + 1, 0, 23, 59, 59)).toISOString().substr(0, 10);
-anneeencours = (new Date(tdate.getFullYear(), tdate.getMonth() + 1, 0, 23, 59, 59)).toISOString().substr(0, 4);
-document.getElementById('intervaldebut').value = debutmois;
-document.getElementById('intervalfin').value = finmois;
-document.getElementById('topposter').value = anneeencours;
-
-//Function pour mettre en timestamp
-function getTimestamp(newDate) {
-	return (new Date(newDate).getTime());
-}
-
-//Function pour mettre en format date correct depuis un timestamp
-function format_date(value) {
-	date = new Date(value * 1000);
-	month = date.getMonth();
-	month = month + 1;
-	if (month < 10) month = "0" + month;
-	year = date.getFullYear();
-	day = date.getDate();
-	return day + "/" + month + "/" + year;
-}
-
-// recharger l'affichage de l'actualité qui vient d'être modifiée
-function updateActualiteDOM(actufolowme, resp) {
-
-	//Trunck des liens
-	var reslien;
-	if (resp.lien.length > 29) {
-		reslien = resp.lien.substring(0, 30) + '...';
-	} else {
-		reslien = resp.lien;
-	}
-
-	var actualite = document.createElement("div");
-	actualite.setAttribute('data-actualite-id', resp.id);
-	actualite.setAttribute('data-actualite-date', resp.date);
-	actualite.setAttribute('class', 'actualite');
-
-	var actualiteContent = document.createElement("div");
-	actualiteContent.setAttribute('class', 'actualite-content');
-
-	var actualiteSection = document.createElement("div");
-	actualiteSection.setAttribute('class', 'actualite-section');
-
-	var actualiteDate = document.createElement("p");
-	actualiteDate.append(document.createTextNode(format_date(resp.date)));
-	actualiteDate.setAttribute('class', 'date');
-
-	var actualiteLien = document.createElement("a");
-	actualiteLien.setAttribute('href', resp.lien);
-	actualiteLien.setAttribute('class', 'lien');
-	actualiteLien.append(document.createTextNode(reslien));
-	var spanModif = document.createElement("span");
-	spanModif.setAttribute('class', 'modiffollowme jam jam-pencil');
-	var spanSupp = document.createElement("span");
-	spanSupp.setAttribute('class', 'supprfollowme jam jam-trash');
-
-	actualiteSection.append(actualiteDate);
-	actualiteSection.append(actualiteLien);
-
-	actualiteSection.append(spanModif);
-	actualiteSection.append(spanSupp);
-
-	var actualiteTitle = document.createElement("div");
-	actualiteTitle.setAttribute('class', 'actualiteTitle');
-	var pTitle = document.createElement("p");
-	pTitle.append(document.createTextNode(resp.title ?? ''));
-
-	var actualiteDescription = document.createElement("div");
-	actualiteDescription.setAttribute('class', 'actualiteDescription');
-	var pDescription = document.createElement("p");
-	pDescription.append(document.createTextNode(resp.description));
-
-	var actualiteAuteur = document.createElement("p");
-	actualiteAuteur.append(document.createTextNode(resp.utilisateur));
-	actualiteAuteur.setAttribute('class', 'auteur');
-
-	actualiteDescription.append(pTitle);
-	actualiteDescription.append(pDescription);
-	actualiteDescription.append(actualiteAuteur);
-
-	var actualiteCategorie = document.createElement("div");
-	actualiteCategorie.setAttribute('class', 'actualiteCategorie');
-	var pCategorie = document.createElement("span");
-	pCategorie.setAttribute('class', 'tag');
-	pCategorie.append(document.createTextNode(resp.categorie));
-
-	actualiteCategorie.append(pCategorie)
-
-	actualiteContent.append(actualiteSection);
-	actualiteContent.append(actualiteDescription);
-	actualiteContent.append(actualiteCategorie);
-
-	actualite.append(actualiteContent);
-
-	actufolowme.append(actualite);
-}
-
-
-//Rafraichissement de l'affichage
-//TODO AJOUTER LES CATEGORIES EN BDD
-var refresh = function (baseUrl, actuFollowme) {
-
-	//Affichage mensuel des actus
-	var interval = {
-		intervaldebut: String(getTimestamp(document.getElementById('intervaldebut').value) / 1000),
-		intervalfin: String(getTimestamp(document.getElementById('intervalfin').value) / 1000),
-	};
-
-	//Refresh des articles
-	fetch(baseUrl + '/showActu', {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			'requesttoken': OC.requestToken,
-		},
-		body: JSON.stringify(interval)
-	})
-		.then(response => response.json())
-		.then(response => {
-
-			actuFollowme.innerHTML = "";
-
-			response.forEach(myresp => {
-				updateActualiteDOM(actuFollowme, myresp);
-			});
-
-		})
-		.catch(console.error);
-
-	recupererTopPoster();
-
-	//Refresh des catégories
-	//Ajout catégorie à modifier à l'avenir
-	const categorie = document.getElementById("categoriefollowme");
-
-	categorie.innerHTML = `
-			<option value="News">📰 News</option>
-			<option value="Vulnérabilité">🛑 Vulnérabilité</option>
-			<option value="Menace">⚠️ Menace</option>
-			<option value="Protection des données">🔒 Protection des données</option>
-			<option value="Outil">🔨 Outil</option>
-			<option value="Guide">📍 Guide</option>
-			<option value="Vidéos">🎞 Vidéos</option>
-			<option value="Numérique Responsable">⌨️ Numérique Responsable</option>
-			<option value="IA">🧠 IA</option>
-		`;
-
-	//RefreshListener
-	refreshListener();
-}
-
-async function recupererTopPoster() {
-	const myTopPoster = {
-		year: document.getElementById('topposter').value
-	};
-
-	try {
-		const response = await fetch(baseUrl + '/getNbArticleByUser', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'requesttoken': OC.requestToken,
-			},
-			body: JSON.stringify(myTopPoster)
-		});
-
-		if (!response.ok) {
-			throw new Error(`Erreur HTTP : ${response.status}`);
-		}
-
-		const data = await response.json();
-
-		getNbArticleByUser.replaceChildren();
-
-		data.forEach(({ utilisateur, annee, count }) => {
-			const tr = document.createElement('tr');
-
-			[utilisateur, annee, count].forEach(value => {
-				const td = document.createElement('td');
-				td.textContent = value;
-				tr.appendChild(td);
-			});
-
-			getNbArticleByUser.appendChild(tr);
-		});
-
-	} catch (error) {
-		console.error('Erreur lors de la récupération des top posters :', error);
-	}
-}
-
-
-//Envoie du formulaire de la modal d'édition ou ajout de l'actualité
-document.getElementById("edit_followme").addEventListener("submit", function (e) {
-	e.preventDefault();
-
-	const actualite = {
-		date: String(getTimestamp(document.getElementById('datefollowme').value) / 1000),
-		lien: document.getElementById('lienfollowme').value,
-		description: document.getElementById('descriptionfollowme').value,
-		categorie: document.getElementById('categoriefollowme').value,
-		title: document.getElementById('titlefollowme').value,
-		idArticle: this.dataset.idArticle
-	};
-
-	if (this.dataset.mode === "edition") {
-		editerActu(actualite);
-	} else {
-		ajouterActu(actualite);
-	}
-
-});
-
-//Function ajax permettant l'enregistrement dans la base de données de l'actualité
-async function ajouterActu(actualite) {
-	try {
-		const response = await fetch(baseUrl + '/insertActu', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'requesttoken': OC.requestToken,
-			},
-			body: JSON.stringify(actualite)
-		});
-
-		if (!response.ok) {
-			throw new Error(`Erreur HTTP : ${response.status}`);
-		}
-
-		const data = await response.json();
-
-		console.log(data);
-
-		refresh(baseUrl, actuFollowme);
-		fermer_modal();
-
-	} catch (err) {
-		console.error("Erreur lors de l'ajout de l'actualité :", err);
-	}
-}
-
-//Function ajax permettant la modification dans la base de données de l'actualité
-async function editerActu(actualite) {
-	try {
-		const response = await fetch(baseUrl + '/updateActu', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'requesttoken': OC.requestToken,
-			},
-			body: JSON.stringify(actualite)
-		});
-
-		if (!response.ok) {
-			throw new Error(`Erreur HTTP : ${response.status}`);
-		}
-
-		await response.json();
-
-		refresh(baseUrl, actuFollowme);
-		fermer_modal();
-
-	} catch (err) {
-		console.error("Erreur lors de la modification de l'actualité :", err);
-	}
-}
-
-
-//Supprimer une news dans la base de données
-var refreshListener = function () {
-	createDeleteListener(document.getElementById("actufollowme"));
-	createEditListener(document.getElementById("actufollowme"));
-};
-
-function createDeleteListener(element) {
-	if (element.getAttribute('DeleteListener') !== "1") {
-		element.setAttribute('DeleteListener', "1");
-		element.addEventListener("click", function (e) {
-
-			const btn = e.target.closest(".supprfollowme");
-
-			if (!btn) return;
-
-			const actualite = btn.closest(".actualite");
-
-			const resp = confirm(
-				`Etes-vous sûr de vouloir supprimer l'actualité du ${actualite.querySelector(".date").textContent
-				}, ${actualite.querySelector(".lien").textContent
-				} ?`
-			);
-
-			if (!resp) return;
-
-			e.preventDefault();
-
-			const news = {
-				id: actualite.dataset.actualiteId
-			};
-
-			fetch(baseUrl + "/delActu", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					'requesttoken': OC.requestToken,
-				},
-				body: JSON.stringify(news)
-			})
-				.then(() => refresh(baseUrl, actuFollowme))
-				.catch(console.error);
-
-		});
-	}
-}
-
-function createEditListener(element) {
-	if (element.dataset.editListener === "1") {
-		return;
-	}
-
-	element.dataset.editListener = "1";
-
-	element.addEventListener("click", async function (e) {
-		const btn = e.target.closest(".modiffollowme");
-
-		if (!btn) {
-			return;
-		}
-
-		e.stopPropagation();
-
-		const actualite = btn.closest(".actualite");
-
-		const news = {
-			id: actualite.dataset.actualiteId
-		};
-
-		try {
-			const response = await fetch(
-				`${baseUrl}/findActu?id=${encodeURIComponent(news.id)}`,
-				{
-					method: "GET",
-					headers: {
-						"Content-Type": "application/json",
-						'requesttoken': OC.requestToken,
-					}
-				}
-			);
-
-			if (!response.ok) {
-				throw new Error(`Erreur HTTP : ${response.status}`);
-			}
-
-			const actualite = await response.json();
-
-			console.log(actualite);
-
-			setModalMode("edition");
-			setModalInputValues(actualite);
-			updateCaracteresCompteur();
-			afficher_modal();
-
-		} catch (err) {
-			console.error(err);
-		}
-	});
-}
-
-function clearAllActus() {
-	document.getElementById('actufollowme').innerHTML = '';
-}
-
-//---------------------MODAL 
-
-const modal = document.getElementById("edit_followme");
-
-// Afficher la modal
-function afficher_modal() {
-	modal.style.display = "block"; // ou "flex" selon ton CSS
-}
-
-// Fermer la modal
-function fermer_modal() {
-	modal.style.display = "none";
-	clearModal();
-}
-
-// Ouvrir la modal en mode ajout
-document.getElementById("afficher_ajout_modal")
-	.addEventListener("click", () => {
-		setModalMode("ajout");
-		afficher_modal();
-	});
-
-// Boutons de fermeture
-document.querySelectorAll(".fermer_modal").forEach(button => {
-	button.addEventListener("click", fermer_modal);
-});
-
-// Passer la modal en mode ajout / édition
-function setModalMode(mode) {
-	modal.dataset.mode = mode;
-}
-
-// Remplir les champs de la modal
-function setModalInputValues(actualite) {
-
-	modal.dataset.idArticle = actualite.actu.id;
-
-	const time = moment(actualite.actu.date * 1000).format("YYYY-MM-DD");
-
-	modal.querySelector("#titlefollowme").value = actualite.actu.title ?? "";
-	modal.querySelector("#datefollowme").value = time;
-	modal.querySelector("#lienfollowme").value = actualite.actu.lien ?? "";
-	modal.querySelector("#descriptionfollowme").value = actualite.actu.description ?? "";
-	modal.querySelector("#categoriefollowme").value = actualite.actu.categorie ?? "";
-}
-
-// Vider la modal
-function clearModal() {
-
-	modal.querySelectorAll("input, textarea").forEach(input => {
-		input.value = "";
-	});
-
-	modal.querySelector("#categoriefollowme").selectedIndex = 0;
-	modal.querySelector("#nbCaracteres").textContent = "0";
-}
-
-// Mise à jour du compteur
-document
-	.getElementById("descriptionfollowme")
-	.addEventListener("input", updateCaracteresCompteur);
-
-// Mettre à jour le compteur de caractères
-function updateCaracteresCompteur() {
-
-	const nombreCaractere =
-		modal.querySelector("#descriptionfollowme").value.length;
-
-	modal.querySelector("#nbCaracteres").textContent = nombreCaractere;
-}
-
-document.getElementById("topposter").addEventListener("change", recupererTopPoster);
-
-// ---------------------------------------------
-
-// Paramètres
-document.querySelector('#app-settings-header button').addEventListener('click', () => {
-	const settings = document.querySelector('#app-settings-content')
-
-	settings.style.display = settings.style.display === 'none' ? 'block' : 'none'
-})
-
-// Masquer les éléments au chargement
-document.getElementById("edit_followme").style.display = "none";
-
-document.querySelectorAll(".modal-background").forEach(element => {
-	element.style.display = "none";
-});
-
-// document.getElementById("insertfollowme").style.display = "none";
-
-// Gestion du bouton de rafraîchissement
-document.getElementById("GenerateNews").addEventListener("click", () => {
-
-	if (myInterval) {
-		stopRafraichissement();
-	}
-
-	goInterval();
-	refresh(baseUrl, actuFollowme);
-});
-
-// Lancer le rafraîchissement automatique
-function goInterval() {
-	myInterval = setInterval(() => {
-		refresh(baseUrl, actuFollowme);
-	}, 60000);
-}
-
-// Arrêter le rafraîchissement automatique
-function stopRafraichissement() {
-	clearInterval(myInterval);
-	myInterval = null;
-}
-
-
-refresh(baseUrl, actuFollowme);
-goInterval();
+(() => {
+    'use strict';
+    const root = document.querySelector('.followme-app');
+    if (!root) return;
+    const byId = (id) => document.getElementById(id);
+    const dialog = byId('followme-dialog');
+    const form = byId('edit_followme');
+    const feed = byId('actufollowme');
+    const status = byId('followme-status');
+    const categories = ['News', 'Vulnérabilité', 'Menace', 'Protection des données', 'Outil', 'Guide', 'Vidéos', 'Numérique Responsable', 'IA'];
+    let refreshSequence = 0;
+    let refreshPending = false;
+    const dateInput = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const now = new Date();
+    byId('intervaldebut').value = dateInput(new Date(now.getFullYear(), now.getMonth(), 1));
+    byId('intervalfin').value = dateInput(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+    byId('topposter').value = String(now.getFullYear());
+
+    async function request(path, data) {
+        const response = await fetch(OC.generateUrl(`/apps/followme/${path}`), {
+            method: data === undefined ? 'GET' : 'POST',
+            headers: { 'Content-Type': 'application/json', requesttoken: OC.requestToken },
+            ...(data === undefined ? {} : { body: JSON.stringify(data) }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || `La requête a échoué (${response.status}).`);
+        return result;
+    }
+    function interval() {
+        const start = byId('intervaldebut').value;
+        const end = byId('intervalfin').value;
+        if (!start || !end || start > end) throw new Error('Choisissez une période valide.');
+        return { intervaldebut: String(Math.floor(new Date(`${start}T00:00:00`).getTime() / 1000)),
+            intervalfin: String(Math.floor(new Date(`${end}T23:59:59`).getTime() / 1000)) };
+    }
+    function element(tag, text, className) {
+        const node = document.createElement(tag);
+        if (text !== undefined) node.textContent = String(text);
+        if (className) node.className = className;
+        return node;
+    }
+    function articleCard(article) {
+        const card = element('article', undefined, 'followme-card');
+        card.dataset.id = article.id;
+        const header = element('div', undefined, 'followme-card-header');
+        header.append(element('span', article.categorie, 'followme-tag'));
+        const time = element('time', new Date(Number(article.date) * 1000).toLocaleDateString('fr-FR'));
+        time.dateTime = new Date(Number(article.date) * 1000).toISOString();
+        header.append(time);
+        const actions = element('div', undefined, 'followme-card-actions');
+        for (const [action, label] of [['edit', 'Modifier'], ['delete', 'Supprimer']]) {
+            const button = element('button', label);
+            button.type = 'button'; button.dataset.action = action;
+            button.setAttribute('aria-label', `${label} : ${article.title || 'actualité'}`);
+            actions.append(button);
+        }
+        header.append(actions);
+        const heading = element('h2');
+        const link = element('a', article.title || article.lien);
+        // Legacy records may contain non-HTTP links: never render executable URLs.
+        try {
+            const url = new URL(article.lien);
+            if (['http:', 'https:'].includes(url.protocol)) { link.href = url.href; link.target = '_blank'; link.rel = 'noopener noreferrer'; }
+        } catch { /* Keep invalid legacy links as plain text. */ }
+        heading.append(link);
+        const footer = element('div', `Partagé par ${article.utilisateur}`, 'followme-card-footer');
+        card.append(header, heading, element('p', article.description, 'followme-card-description'), footer);
+        return card;
+    }
+    async function ranking() {
+        const data = await request('getNbArticleByUser', { year: byId('topposter').value });
+        const body = byId('getNbArticleByUser').querySelector('tbody');
+        body.replaceChildren();
+        if (!data.length) {
+            const cell = element('td', 'Aucun partage cette année.'); cell.colSpan = 2;
+            const row = element('tr'); row.append(cell); body.append(row);
+        }
+        data.forEach((entry, index) => {
+            const row = element('tr');
+            const author = element('td'); author.append(element('span', index + 1, 'followme-rank'), document.createTextNode(entry.utilisateur));
+            row.append(author, element('td', entry.count)); body.append(row);
+        });
+    }
+    async function refresh() {
+        const sequence = ++refreshSequence;
+        feed.setAttribute('aria-busy', 'true');
+        try {
+            const data = await request('showActu', interval());
+            if (sequence !== refreshSequence) return;
+            feed.replaceChildren(...data.map(articleCard));
+            if (!data.length) feed.append(element('p', 'Aucune actualité sur cette période. Partagez le premier lien !', 'followme-empty'));
+            byId('article-count').textContent = `${data.length} actualité${data.length > 1 ? 's' : ''}`;
+            status.textContent = '';
+            await ranking();
+        } catch (error) { if (sequence === refreshSequence) status.textContent = error.message; }
+        finally { if (sequence === refreshSequence) feed.setAttribute('aria-busy', 'false'); }
+    }
+    function showModal(article) {
+        form.reset();
+        form.dataset.mode = article ? 'edition' : 'ajout';
+        form.dataset.idArticle = article ? article.id : '';
+        byId('followme-dialog-title').textContent = article ? 'Modifier l’actualité' : 'Nouvelle actualité';
+        form.querySelector('[type="submit"]').textContent = article ? 'Enregistrer les modifications' : 'Partager l’actualité';
+        byId('titlefollowme').value = article?.title || '';
+        byId('datefollowme').value = dateInput(article ? new Date(Number(article.date) * 1000) : new Date());
+        byId('lienfollowme').value = article?.lien || '';
+        byId('descriptionfollowme').value = article?.description || '';
+        byId('categoriefollowme').value = article?.categorie || 'News';
+        byId('nbCaracteres').textContent = byId('descriptionfollowme').value.length;
+        byId('followme-form-error').textContent = '';
+        dialog.showModal(); // Native top layer, focus trap, Escape, focus restoration.
+    }
+    byId('afficher_ajout_modal').addEventListener('click', () => showModal());
+    dialog.querySelectorAll('.fermer_modal').forEach((button) => button.addEventListener('click', () => dialog.close()));
+    dialog.addEventListener('click', (event) => {
+        const rect = dialog.getBoundingClientRect();
+        if (event.target === dialog && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) dialog.close();
+    });
+    byId('descriptionfollowme').addEventListener('input', () => { byId('nbCaracteres').textContent = byId('descriptionfollowme').value.length; });
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const button = form.querySelector('[type="submit"]'); button.disabled = true;
+        try {
+            const data = { date: String(Math.floor(new Date(`${byId('datefollowme').value}T12:00:00`).getTime() / 1000)),
+                lien: byId('lienfollowme').value, description: byId('descriptionfollowme').value,
+                categorie: byId('categoriefollowme').value, title: byId('titlefollowme').value, idArticle: form.dataset.idArticle };
+            const result = await request(form.dataset.mode === 'edition' ? 'updateActu' : 'insertActu', data);
+            dialog.close(); await refresh();
+            status.textContent = result.warning || 'Actualité enregistrée.';
+        } catch (error) { byId('followme-form-error').textContent = error.message; }
+        finally { button.disabled = false; }
+    });
+    feed.addEventListener('click', async (event) => {
+        const button = event.target.closest('button[data-action]');
+        if (!button) return;
+        const id = button.closest('[data-id]').dataset.id;
+        button.disabled = true;
+        try {
+            if (button.dataset.action === 'edit') { showModal((await request(`findActu?id=${encodeURIComponent(id)}`)).actu); }
+            else if (window.confirm('Supprimer définitivement cette actualité ?')) { await request('delActu', { id }); await refresh(); }
+        } catch (error) { status.textContent = error.message; }
+        finally { button.disabled = false; }
+    });
+    const settingsButton = byId('app-settings-header').querySelector('button');
+    settingsButton.addEventListener('click', () => {
+        const content = byId('app-settings-content'); content.hidden = !content.hidden;
+        settingsButton.setAttribute('aria-expanded', String(!content.hidden));
+    });
+    byId('GenerateNews').addEventListener('click', refresh);
+    byId('topposter').addEventListener('change', () => ranking().catch((error) => { status.textContent = error.message; }));
+    byId('GenerateToHugo').addEventListener('click', async () => {
+        const sequence = ++refreshSequence; // Invalidate pending feed requests before showing the export.
+        try {
+            const data = await request('postActuInterval', interval());
+            if (sequence !== refreshSequence) return;
+            const groups = new Map();
+            data.forEach((item) => { if (!groups.has(item.categorie)) groups.set(item.categorie, []); groups.get(item.categorie).push(item); });
+            const quote = (value) => JSON.stringify(String(value ?? ''));
+            const lines = ['content:', `  title: ${quote('Top news du mois de ' + new Date(`${byId('intervalfin').value}T12:00:00`).toLocaleString('fr-FR', { month: 'long' }))}`];
+            for (let index = 1; index <= 3; index++) {
+                for (const suffix of ['', '_image', '_description', '_link']) lines.push(`  top_news${index}${suffix}: ""`);
+            }
+            for (const [category, items] of [...groups].sort(([a], [b]) => a.localeCompare(b))) {
+                const slug = category.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') || 'autres';
+                lines.push(`  items_${slug}:`);
+                items.forEach((item) => lines.push(`    - date: ${quote(new Date(Number(item.date) * 1000).toLocaleDateString('fr-FR'))}`, `      title: ${quote(item.title)}`, `      link: ${quote(item.lien)}`, `      description: ${quote(item.description)}`));
+            }
+            const output = element('pre', lines.join('\n')); output.id = 'formatNews'; feed.replaceChildren(output);
+            feed.setAttribute('aria-busy', 'false'); status.textContent = 'Export prêt à copier dans Hugo. Les trois actualités à la une restent à compléter.';
+        } catch (error) { status.textContent = error.message; }
+    });
+    request('findCategorie').then((rows) => {
+        const options = new Set([...categories, ...rows.map((row) => row.categorie)]);
+        byId('followme-categories').replaceChildren(...[...options].map((name) => { const option = element('option'); option.value = name; return option; }));
+    }).catch(() => { byId('followme-categories').replaceChildren(...categories.map((name) => { const option = element('option'); option.value = name; return option; })); });
+    refresh();
+    window.setInterval(async () => {
+        if (document.hidden || dialog.open || byId('formatNews') || refreshPending) return;
+        refreshPending = true;
+        try { await refresh(); } finally { refreshPending = false; }
+    }, 60000);
+})();
