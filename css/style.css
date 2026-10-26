@@ -1,5 +1,5 @@
 /* Native Nextcloud colours support both light and dark themes. */
-.followme-app { --app-navigation-width: 340px; --followme-border: var(--color-border, #dce2eb); }
+.followme-app { --app-navigation-width: 380px; --followme-border: var(--color-border, #dce2eb); }
 .followme-app #app-content-wrapper { max-width: 1160px; margin: 0 auto; padding: 36px clamp(18px, 4vw, 56px); }
 .followme-sidebar { padding: 20px 14px 88px; }
 .followme-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
@@ -14,9 +14,9 @@
 #getNbArticleByUser { width: 100%; margin-top: 10px; border-collapse: collapse; }
 #getNbArticleByUser th { color: var(--color-text-maxcontrast); font-size: 11px; font-weight: 600; text-align: left; }
 #getNbArticleByUser th:last-child, #getNbArticleByUser td:last-child { text-align: right; }
-#getNbArticleByUser td { padding: 6px 0; border-bottom: 1px solid var(--color-border); font-size: 12px; overflow-wrap: anywhere; }
+#getNbArticleByUser td { padding: 2px 0; border-bottom: 1px solid var(--color-border); font-size: 12px; overflow-wrap: anywhere; }
 #getNbArticleByUser tr:last-child td { border-bottom: none; }
-.followme-rank { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-right: 6px; border-radius: 8px; background: var(--color-background-dark); font-size: 11px; }
+.followme-rank { display: inline-grid; place-items: center; width: 16px; height: 16px; margin-right: 6px; border-radius: 8px; background: var(--color-background-dark); font-size: 10px; }
 .followme-period label { display: block; margin: 10px 0 4px; font-size: 12px; }
 .followme-period input, .followme-period button { width: 100%; margin: 3px 0; }
 .followme-settings-link { display: block; padding: 12px; border-radius: 8px; color: var(--color-primary-element); }
@@ -71,3 +71,17 @@
 
 #getNbArticleByUser td:first-child { max-width: 210px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .followme-dialog-body select { min-height: 34px; }
+
+/* Override global Nextcloud table row heights, not only cell padding. */
+.followme-app #getNbArticleByUser { table-layout: fixed; }
+.followme-app #getNbArticleByUser tbody tr { height: 24px; min-height: 0; }
+.followme-app #getNbArticleByUser tbody td { height: 24px; min-height: 0; padding: 2px 0; line-height: 18px; box-sizing: border-box; vertical-align: middle; }
+.followme-app #getNbArticleByUser th:last-child { width: 64px; }
+.followme-app #getNbArticleByUser .followme-rank { width: 16px; height: 16px; line-height: 16px; vertical-align: middle; border-radius: 5px; }
+#followme-dialog .followme-dialog-body select { display: block; width: 100%; min-width: 0; max-width: 100%; height: 36px; padding-inline: 10px 28px; font-size: 14px; }
+@media (min-width: 1025px) {
+    .followme-app #app-navigation { width: 380px; min-width: 380px; max-width: 380px; flex-basis: 380px; }
+}
+@media (max-width: 1024px) {
+    .followme-app #app-navigation { width: min(380px, calc(100vw - 32px)); max-width: calc(100vw - 32px); }
+}
