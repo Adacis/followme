@@ -11,22 +11,35 @@ fs.mkdirSync(output, { recursive: true });
 (async () => {
  const browser = await chromium.launch({...(process.env.FOLLOWME_BROWSER_EXECUTABLE ? { executablePath: process.env.FOLLOWME_BROWSER_EXECUTABLE } : {}),headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
  const context = await browser.newContext({viewport:{width:1440,height:1000},extraHTTPHeaders:{Authorization:'Basic '+Buffer.from('admin:' + password).toString('base64'),'OCS-APIRequest':'true'}});
+ const serverOnly = await browser.newContext({javaScriptEnabled:false,extraHTTPHeaders:{Authorization:'Basic '+Buffer.from('admin:' + password).toString('base64'),'OCS-APIRequest':'true'}});
+ const serverPage = await serverOnly.newPage();
+ await serverPage.goto(baseUrl + '/index.php/apps/followme/');
+ const serverCategories = await serverPage.locator('#categoriefollowme option').allTextContents();
+ assert.equal(serverCategories.length,9,'categories must exist without JavaScript');
+ assert.ok(serverCategories.includes('News') && serverCategories.includes('Guide'));
+ await serverOnly.close();
  const page = await context.newPage(); const errors=[]; page.on('pageerror',e=>errors.push(e.message));
+ await page.route('**/apps/followme/getNbArticleByUser',route=>route.fulfill({json:Array.from({length:25},(_,index)=>({utilisateur:`Contributeur ${String(index+1).padStart(2,'0')} Nom composé`,annee:2026,count:47-index}))}));
  await page.route('**/apps/followme/findCategorie', route => route.fulfill({json:[{categorie:'news'},{categorie:'Catégorie interne'}]}));
  await page.goto(baseUrl + '/index.php/apps/followme/');
  await page.waitForFunction(()=>document.getElementById('actufollowme').getAttribute('aria-busy')==='false');
+ // Reproduce global table styles from a host Nextcloud theme.
+ await page.addStyleTag({content:'tbody tr { height: 50px; } select { width: auto; }'});
+ await page.waitForFunction(()=>document.querySelectorAll('#getNbArticleByUser tbody tr').length===25);
+ const rowHeights=await page.locator('#getNbArticleByUser tbody tr').evaluateAll(rows=>rows.map(row=>row.getBoundingClientRect().height));
+ assert.ok(rowHeights.every(height=>height>=20 && height<=25),'every contributor row must stay compact');
  // Clean only fixtures left by an interrupted run.
  for (const card of await page.locator('.followme-card').all()) {
    if (/Followme test|Actualité modifiée/.test(await card.innerText())) { page.once('dialog',d=>d.accept()); await card.locator('[data-action=delete]').click(); await page.waitForTimeout(200); }
  }
- assert.match(await page.locator('.followme-version').innerText(),/1\.3\.0/);
+ assert.match(await page.locator('.followme-version').innerText(),/1\.3\.1/);
  await page.getByRole('button',{name:'＋ Ajouter une actualité'}).click();
  await page.waitForSelector('#followme-dialog[open]');
  await page.waitForFunction(()=>document.querySelector('#categoriefollowme option[value="Catégorie interne"]'));
  const categoryOptions=await page.locator('#categoriefollowme option').allTextContents();
  for (const name of ['News','Vulnérabilité','Menace','Protection des données','Outil','Guide','Vidéos','Numérique Responsable','IA','Catégorie interne']) assert.ok(categoryOptions.includes(name),name);
  assert.equal(categoryOptions.filter(name=>name.toLowerCase()==='news').length,1);
- const navigationRect=await page.locator('#app-navigation').boundingBox();assert.ok(navigationRect.width>=330 && navigationRect.width<=350);
+ const navigationRect=await page.locator('#app-navigation').boundingBox();assert.ok(navigationRect.width>=375 && navigationRect.width<=385);
  const rect=await page.locator('#followme-dialog').boundingBox();
  assert.ok(Math.abs(rect.x+rect.width/2-720)<3,'dialog horizontally centred');
  assert.ok(Math.abs(rect.y+rect.height/2-500)<3,'dialog vertically centred');
@@ -51,6 +64,7 @@ fs.mkdirSync(output, { recursive: true });
  assert.match(await page.locator('#formatNews').innerText(),/Actualité modifiée/);
  await page.getByRole('button',{name:'Actualiser',exact:true}).click();
  await page.getByRole('link',{name:'Actualité modifiée',exact:true}).waitFor();
+ await page.locator('#app-navigation').evaluate(navigation=>{navigation.scrollTop=0;});
  await page.screenshot({path:path.join(output, 'followme-desktop.png'),fullPage:true});
  await page.getByRole('button',{name:'Paramètres',exact:true}).click();
  await page.getByRole('link',{name:'Administration de Followme'}).click();
@@ -87,6 +101,6 @@ fs.mkdirSync(output, { recursive: true });
  const deniedPost=await reader.request.post(baseUrl + '/index.php/apps/followme/param',{headers:{requesttoken:token},data:{urlWP:''}});assert.equal(deniedPost.status(),403);
  const deniedAdmin=await reader.request.get(baseUrl + '/index.php/settings/admin/followme');assert.ok([302,403].includes(deniedAdmin.status()) || !(await deniedAdmin.text()).includes('followme-admin-form'));
  assert.deepEqual(errors,[]);
- console.log('PASS: version, centred desktop/mobile dialog, CRUD, ranking, full category list and offline defaults, wider navigation, Hugo export, admin save, reader restrictions, Escape, no JS errors');
+ console.log('PASS: version, centred desktop/mobile dialog, CRUD, ranking, server-rendered categories without JS, full category list and offline defaults, 25 compact contributor rows, 380px navigation, Hugo export, admin save, reader restrictions, Escape, no JS errors');
  await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});

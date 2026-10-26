@@ -7,8 +7,9 @@
     const form = byId('edit_followme');
     const feed = byId('actufollowme');
     const status = byId('followme-status');
-    const categories = ['News', 'Vulnérabilité', 'Menace', 'Protection des données', 'Outil', 'Guide', 'Vidéos', 'Numérique Responsable', 'IA'];
     const categorySelect = byId('categoriefollowme');
+    // Defaults are rendered by PHP, independently of JavaScript and API requests.
+    const categories = [...categorySelect.options].map((option) => option.value);
     const categoryKey = (value) => value.trim().normalize('NFC').toLocaleLowerCase('fr-FR');
     function populateCategories(extra = []) {
         const selected = categorySelect.value;

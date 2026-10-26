@@ -3,6 +3,7 @@ namespace OCA\Followme\Controller;
 
 use OCA\Followme\Db\FollowmeMapper;
 use OCA\Followme\Service\IntegrationService;
+use OCA\Followme\Service\CategoryCatalog;
 use OCP\App\IAppManager;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -28,6 +29,7 @@ class PageController extends Controller {
     public function index(): TemplateResponse {
         $user = $this->users->getUser();
         return new TemplateResponse('followme', 'index', [
+            'categories' => CategoryCatalog::DEFAULTS,
             'key' => $user ? $user->getDisplayName() : '', 'version' => $this->apps->getAppVersion('followme'),
             'isAdmin' => $user && $this->groups->isAdmin($user->getUID()),
             'adminUrl' => $this->urls->linkToRoute('settings.AdminSettings.index', ['section' => 'followme']),
