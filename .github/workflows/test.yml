@@ -1,0 +1,64 @@
+name: Tests
+on:
+  workflow_call:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  nextcloud:
+    runs-on: ubuntu-latest
+    env:
+      CI_ADMIN_PASSWORD: Followme-CI-Admin-7x9!
+      CI_READER_PASSWORD: Followme-CI-Reader-7x9!
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Check native JavaScript
+        run: |
+          node --check js/script.js
+          node --check js/admin.js
+      - name: Start Nextcloud test environment
+        run: |
+          docker network create followme-tests
+          docker run -d --name database --network followme-tests -e MARIADB_DATABASE=nextcloud -e MARIADB_USER=nextcloud -e MARIADB_PASSWORD=testing -e MARIADB_ROOT_PASSWORD=testing mariadb:11
+          docker run -d --name nextcloud --network followme-tests -p 127.0.0.1:8080:80 nextcloud:33-apache
+          for i in $(seq 1 60); do
+            if docker exec database healthcheck.sh --connect --innodb_initialized && curl --fail --silent http://127.0.0.1:8080/status.php >/dev/null; then break; fi
+            sleep 2
+          done
+          docker exec nextcloud chown -R www-data:www-data /var/www/html/config /var/www/html/data
+          docker exec -u www-data nextcloud php occ maintenance:install --database mysql --database-host database --database-name nextcloud --database-user nextcloud --database-pass testing --admin-user admin --admin-pass "$CI_ADMIN_PASSWORD"
+          docker cp "$GITHUB_WORKSPACE" nextcloud:/var/www/html/custom_apps/followme
+          docker exec nextcloud chown -R www-data:www-data /var/www/html/custom_apps/followme
+          docker exec -u www-data nextcloud php occ app:enable followme
+          docker exec -u www-data nextcloud php occ config:system:set trusted_domains 1 --value=127.0.0.1
+          docker exec -u www-data nextcloud php occ app:disable firstrunwizard
+          docker exec -u www-data -e OC_PASS="$CI_READER_PASSWORD" nextcloud php occ user:add --password-from-env --display-name 'Followme Reader' followme-reader
+      - name: Install locked development tools and run tests
+        run: |
+          docker create --name composer-tools composer:2
+          docker cp composer-tools:/usr/bin/composer ./composer-test.phar
+          docker cp composer-test.phar nextcloud:/tmp/composer.phar
+          docker exec -u www-data -e COMPOSER_HOME=/tmp/composer -w /var/www/html/custom_apps/followme nextcloud php /tmp/composer.phar install --prefer-dist --no-interaction --no-progress
+          docker exec -u www-data -e NEXTCLOUD_ROOT=/var/www/html -w /var/www/html/custom_apps/followme nextcloud php vendor/bin/phpunit -c phpunit.xml
+      - name: Test browser workflows and permissions
+        env:
+          FOLLOWME_TEST_BASE_URL: http://127.0.0.1:8080
+          FOLLOWME_TEST_ADMIN_PASSWORD: ${{ env.CI_ADMIN_PASSWORD }}
+          FOLLOWME_TEST_READER_PASSWORD: ${{ env.CI_READER_PASSWORD }}
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          npm run test:browser
+      - name: Upload browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: followme-browser
+          path: build/browser/
+      - name: Package application
+        run: make appstore

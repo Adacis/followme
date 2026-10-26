@@ -1,33 +1,13 @@
-<div class="modal" id="edit_followme" data-mode="ajout" data-id-article="">
-  <form>
-    <div class="header">
-      <h2>Editer</h2>
-      <button type="button" class="fermer_modal" id="croix">
-        <span class="jam jam-close"></span>
-      </button>
-    </div>
-    <hr>
-    <div class="section-wrapper">
-        <div class="section">
-            <input required type="text" name="titlefollowme" id="titlefollowme" placeholder="Titre de votre actu"/>
+<dialog id="followme-dialog" aria-labelledby="followme-dialog-title">
+    <form id="edit_followme" data-mode="ajout">
+        <header class="followme-dialog-header"><div><p class="followme-eyebrow">PARTAGER AVEC L’ÉQUIPE</p><h2 id="followme-dialog-title">Nouvelle actualité</h2></div><button type="button" class="fermer_modal followme-close" aria-label="Fermer la fenêtre">×</button></header>
+        <div class="followme-dialog-body">
+            <label for="titlefollowme">Titre</label><input required maxlength="255" type="text" id="titlefollowme" placeholder="Ce qui mérite d’être partagé" autofocus>
+            <div class="followme-form-row"><div><label for="datefollowme">Date</label><input required type="date" id="datefollowme"></div><div><label for="categoriefollowme">Catégorie</label><input required maxlength="64" type="text" id="categoriefollowme" list="followme-categories" placeholder="News, Outil, Guide…"><datalist id="followme-categories"></datalist></div></div>
+            <label for="lienfollowme">Lien de l’article</label><input required type="url" id="lienfollowme" placeholder="https://…">
+            <label for="descriptionfollowme">Pourquoi le partager ?</label><textarea required id="descriptionfollowme" rows="5" maxlength="500" placeholder="Résumez l’essentiel en quelques mots…"></textarea>
+            <p class="followme-counter"><span id="nbCaracteres">0</span> / 500 caractères</p><p id="followme-form-error" role="alert"></p>
         </div>
-      <div class="section">
-        <input required type="date" name="datefollowme" id="datefollowme" placeholder="Date de la news"/>
-        <input required type="text" name="lienfollowme" id="lienfollowme" placeholder="Lien de votre actu"/>
-      </div>
-      <div class="section wrap reverse">
-        <textarea required name="descriptionfollowme" id="descriptionfollowme" placeholder="Donner une description de votre actualité" maxlength="500"></textarea>
-        <p class="counter"><span id="nbCaracteres">0</span>/500 caractères</p>
-      </div>
-      <div class="section">
-        <select required name="categoriefollowme" id="categoriefollowme" list="categorie" placeholder="La cat&eacute;gorie">
-        </select>
-      </div>
-    </div>
-    <hr>
-    <div class="footer">
-      <button type="button" class="fermer_modal"><span class="jam jam-close"></span>Annuler</button>
-      <button type="submit" class="valider_modal"><span class="jam jam-check"></span>Valider</button>
-    </div>
-  </form>
-</div>
+        <footer class="followme-dialog-footer"><button type="button" class="fermer_modal">Annuler</button><button type="submit" class="primary">Partager l’actualité</button></footer>
+    </form>
+</dialog>

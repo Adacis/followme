@@ -2,99 +2,56 @@
 namespace OCA\Followme\Db;
 
 use OCP\IDBConnection;
-use OCP\AppFramework\Db\QBMapper;
+use OCP\Security\ICrypto;
 
-/**
- * Interrogation de la table followme dans la base de données générale de nextcloud
- */
-Class FollowmeparamMapper extends QBMapper {
+class FollowmeparamMapper {
+    public const KEYS = ['urlWP', 'userIdWP', 'passwordWP', 'urlRC', 'userIdRC', 'passwordRC', 'roomRC'];
+    private const ENCRYPTED = 'encrypted:v1:';
 
-	public function __construct(IDbConnection $db) {
-		parent::__construct($db, 'followme_parameter', Followme::class);
-	}
+    public function __construct(private IDBConnection $db, private ICrypto $crypto) {}
 
-	public function insertParam($userIdWP, $passwordWP, $urlWP, $userIdRC, $passwordRC, $urlRC, $roomRC){
-		$sql = "DELETE FROM ".'*PREFIX*'.$this->getTableName()." 
-				WHERE ((`name` = 'userIdWP'));
-				INSERT INTO `oc_followme_parameter` (`name`, `value`)
-				VALUES ('userIdWP', ?);";
-		$this->insertSqlParam($sql, array($userIdWP));
+    public function getParam(): array {
+        $qb = $this->db->getQueryBuilder();
+        return $qb->select('name', 'value')->from('followme_parameter')->orderBy('id', 'ASC')->executeQuery()->fetchAllAssociative();
+    }
 
-		$sql = "DELETE FROM ".'*PREFIX*'.$this->getTableName()." 
-				WHERE ((`name` = 'passwordWP'));
-				INSERT INTO `oc_followme_parameter` (`name`, `value`)
-				VALUES ('passwordWP', ?);";
-		$this->insertSqlParam($sql, array($passwordWP));
+    public function getParamByName($name): string {
+        $value = '';
+        foreach ($this->getParam() as $row) {
+            if ($row['name'] === $name) { $value = $row['value']; }
+        }
+        if (str_starts_with($value, self::ENCRYPTED)) {
+            return $this->crypto->decrypt(substr($value, strlen(self::ENCRYPTED)));
+        }
+        return $value;
+    }
 
-		$sql = "DELETE FROM ".'*PREFIX*'.$this->getTableName()." 
-				WHERE ((`name` = 'userIdRC'));
-				INSERT INTO `oc_followme_parameter` (`name`, `value`)
-				VALUES ('userIdRC', ?);";
-		$this->insertSqlParam($sql, array($userIdRC));
+    public function publicSettings(): array {
+        $values = [];
+        foreach (self::KEYS as $key) {
+            if (!str_starts_with($key, 'password')) { $values[$key] = $this->getParamByName($key); }
+        }
+        return $values;
+    }
 
-		$sql = "DELETE FROM ".'*PREFIX*'.$this->getTableName()." 
-				WHERE ((`name` = 'passwordRC'));
-				INSERT INTO `oc_followme_parameter` (`name`, `value`)
-				VALUES ('passwordRC', ?);";
-		$this->insertSqlParam($sql, array($passwordRC));
-
-		$sql = "DELETE FROM ".'*PREFIX*'.$this->getTableName()." 
-				WHERE ((`name` = 'urlWP'));
-				INSERT INTO `oc_followme_parameter` (`name`, `value`)
-				VALUES ('urlWP', ?);";
-		$this->insertSqlParam($sql, array($urlWP));
-
-		$sql = "DELETE FROM ".'*PREFIX*'.$this->getTableName()." 
-				WHERE ((`name` = 'urlRC'));
-				INSERT INTO `oc_followme_parameter` (`name`, `value`)
-				VALUES ('urlRC', ?);";
-		$this->insertSqlParam($sql, array($urlRC));
-
-		$sql = "DELETE FROM ".'*PREFIX*'.$this->getTableName()." 
-				WHERE ((`name` = 'roomRC'));
-				INSERT INTO `oc_followme_parameter` (`name`, `value`)
-				VALUES ('roomRC', ?);";
-		$this->insertSqlParam($sql, array($roomRC));
-	}
-
-	public function getParam(){
-		$sql = "SELECT * FROM ".'*PREFIX*'.$this->getTableName();
-		return $this->executionSql($sql);
-	}
-
-
-	public function getParamByName($name){
-		$sql = "SELECT * FROM ".'*PREFIX*'.$this->getTableName()." WHERE name = ?";
-		return $this->executionSqlParam($sql, array($name))[0]['value'];
-	}
-
-	/**
-	*Execution d'une requête sql
-	*/
-	private function executionSql($sql){
-		$res = $this->db->prepare($sql);
-		$res->execute();
-		$ret = $res->fetchall(2);
-		return $ret;
-	}
-
-	/**
-	*Execution d'une requête sql avec paramètre
-	*param $string, $array
-	*/
-	private function executionSqlParam($sql, $param){
-		$res = $this->db->prepare($sql);
-		$res->execute($param);
-		$ret = $res->fetchall(2);
-		return $ret;
-	}
-
-	/**
-	*Insert SQL
-	*/
-	private function insertSqlParam($sql, $param){
-		$res = $this->db->prepare($sql);
-		$res->execute($param);
-	}
-
+    public function insertParam($userIdWP, $passwordWP, $urlWP, $userIdRC, $passwordRC, $urlRC, $roomRC): void {
+        $values = compact('userIdWP', 'passwordWP', 'urlWP', 'userIdRC', 'passwordRC', 'urlRC', 'roomRC');
+        $this->db->beginTransaction();
+        try {
+            foreach ($values as $key => $value) {
+                if (str_starts_with($key, 'password')) {
+                    if ($value === '') { continue; } // Empty password fields retain the existing secret.
+                    $value = self::ENCRYPTED . $this->crypto->encrypt($value);
+                }
+                $qb = $this->db->getQueryBuilder();
+                $qb->delete('followme_parameter')->where($qb->expr()->eq('name', $qb->createNamedParameter($key)))->executeStatement();
+                $qb = $this->db->getQueryBuilder();
+                $qb->insert('followme_parameter')->values(['name' => $qb->createNamedParameter($key), 'value' => $qb->createNamedParameter($value)])->executeStatement();
+            }
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }
 }

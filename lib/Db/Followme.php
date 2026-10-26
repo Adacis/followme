@@ -11,9 +11,11 @@ class Followme extends Entity implements JsonSerializable {
 	protected $lien;
 	protected $description;
 	protected $categorie;
-	protected $test;
-	protected $userId;
     protected $title;
+
+    public function __construct() {
+        $this->addType('date', 'integer');
+    }
 
 	public function jsonSerialize(){
 		return[
@@ -24,7 +26,6 @@ class Followme extends Entity implements JsonSerializable {
 			'description' => $this->description,
 			'categorie' => $this->categorie,
             'title' => $this->title,
-            'test' => $this->test,
 		];
 	}
 }
