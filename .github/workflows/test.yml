@@ -8,6 +8,9 @@ permissions:
 jobs:
   nextcloud:
     runs-on: ubuntu-latest
+    env:
+      CI_ADMIN_PASSWORD: Followme-CI-Admin-7x9!
+      CI_READER_PASSWORD: Followme-CI-Reader-7x9!
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,13 +31,13 @@ jobs:
             sleep 2
           done
           docker exec nextcloud chown -R www-data:www-data /var/www/html/config /var/www/html/data
-          docker exec -u www-data nextcloud php occ maintenance:install --database mysql --database-host database --database-name nextcloud --database-user nextcloud --database-pass testing --admin-user admin --admin-pass testing
+          docker exec -u www-data nextcloud php occ maintenance:install --database mysql --database-host database --database-name nextcloud --database-user nextcloud --database-pass testing --admin-user admin --admin-pass "$CI_ADMIN_PASSWORD"
           docker cp "$GITHUB_WORKSPACE" nextcloud:/var/www/html/custom_apps/followme
           docker exec nextcloud chown -R www-data:www-data /var/www/html/custom_apps/followme
           docker exec -u www-data nextcloud php occ app:enable followme
           docker exec -u www-data nextcloud php occ config:system:set trusted_domains 1 --value=127.0.0.1
           docker exec -u www-data nextcloud php occ app:disable firstrunwizard
-          docker exec -u www-data -e OC_PASS=testing nextcloud php occ user:add --password-from-env --display-name 'Followme Reader' followme-reader
+          docker exec -u www-data -e OC_PASS="$CI_READER_PASSWORD" nextcloud php occ user:add --password-from-env --display-name 'Followme Reader' followme-reader
       - name: Install locked development tools and run tests
         run: |
           docker create --name composer-tools composer:2
@@ -45,8 +48,8 @@ jobs:
       - name: Test browser workflows and permissions
         env:
           FOLLOWME_TEST_BASE_URL: http://127.0.0.1:8080
-          FOLLOWME_TEST_ADMIN_PASSWORD: testing
-          FOLLOWME_TEST_READER_PASSWORD: testing
+          FOLLOWME_TEST_ADMIN_PASSWORD: ${{ env.CI_ADMIN_PASSWORD }}
+          FOLLOWME_TEST_READER_PASSWORD: ${{ env.CI_READER_PASSWORD }}
         run: |
           npm ci --no-audit --no-fund
           npx playwright install --with-deps chromium
