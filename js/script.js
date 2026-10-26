@@ -8,6 +8,21 @@
     const feed = byId('actufollowme');
     const status = byId('followme-status');
     const categories = ['News', 'Vulnérabilité', 'Menace', 'Protection des données', 'Outil', 'Guide', 'Vidéos', 'Numérique Responsable', 'IA'];
+    const categorySelect = byId('categoriefollowme');
+    const categoryKey = (value) => value.trim().normalize('NFC').toLocaleLowerCase('fr-FR');
+    function populateCategories(extra = []) {
+        const selected = categorySelect.value;
+        const options = new Map();
+        for (const name of [...categories, ...extra, selected]) {
+            if (typeof name === 'string' && name.trim() && !options.has(categoryKey(name))) {
+                options.set(categoryKey(name), name.trim());
+            }
+        }
+        categorySelect.replaceChildren(...[...options.values()].map((name) => new Option(name, name)));
+        categorySelect.value = options.get(categoryKey(selected)) || 'News';
+    }
+    // A select shows every category, even when its current value is already filled.
+    populateCategories();
     let refreshSequence = 0;
     let refreshPending = false;
     const dateInput = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -77,7 +92,7 @@
         }
         data.forEach((entry, index) => {
             const row = element('tr');
-            const author = element('td'); author.append(element('span', index + 1, 'followme-rank'), document.createTextNode(entry.utilisateur));
+            const author = element('td'); author.title = entry.utilisateur; author.append(element('span', index + 1, 'followme-rank'), document.createTextNode(entry.utilisateur));
             row.append(author, element('td', entry.count)); body.append(row);
         });
     }
@@ -105,7 +120,9 @@
         byId('datefollowme').value = dateInput(article ? new Date(Number(article.date) * 1000) : new Date());
         byId('lienfollowme').value = article?.lien || '';
         byId('descriptionfollowme').value = article?.description || '';
-        byId('categoriefollowme').value = article?.categorie || 'News';
+        const category = article?.categorie || 'News';
+        populateCategories([...categorySelect.options].map((option) => option.value).concat(category));
+        categorySelect.value = [...categorySelect.options].find((option) => categoryKey(option.value) === categoryKey(category)).value;
         byId('nbCaracteres').textContent = byId('descriptionfollowme').value.length;
         byId('followme-form-error').textContent = '';
         dialog.showModal(); // Native top layer, focus trap, Escape, focus restoration.
@@ -170,9 +187,8 @@
         } catch (error) { status.textContent = error.message; }
     });
     request('findCategorie').then((rows) => {
-        const options = new Set([...categories, ...rows.map((row) => row.categorie)]);
-        byId('followme-categories').replaceChildren(...[...options].map((name) => { const option = element('option'); option.value = name; return option; }));
-    }).catch(() => { byId('followme-categories').replaceChildren(...categories.map((name) => { const option = element('option'); option.value = name; return option; })); });
+        populateCategories(rows.map((row) => row.categorie));
+    }).catch(() => { /* The complete default list is already available. */ });
     refresh();
     window.setInterval(async () => {
         if (document.hidden || dialog.open || byId('formatNews') || refreshPending) return;
