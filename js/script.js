@@ -11,18 +11,17 @@
     // Defaults are rendered by PHP, independently of JavaScript and API requests.
     const categories = [...categorySelect.options].map((option) => option.value);
     const categoryKey = (value) => value.trim().normalize('NFC').toLocaleLowerCase('fr-FR');
-    function populateCategories(extra = []) {
-        const selected = categorySelect.value;
-        const options = new Map();
-        for (const name of [...categories, ...extra, selected]) {
-            if (typeof name === 'string' && name.trim() && !options.has(categoryKey(name))) {
-                options.set(categoryKey(name), name.trim());
-            }
+    const categoryLabels = new Map([...categorySelect.options].map((option) => [option.value, option.textContent]));
+    function populateCategories(legacyCategory = 'News') {
+        const selected = categories.find((name) => categoryKey(name) === categoryKey(legacyCategory)) || legacyCategory;
+        const options = categories.map((name) => new Option(categoryLabels.get(name), name));
+        // Preserve an old article's category only while editing that article.
+        if (selected && !categories.includes(selected)) {
+            options.push(new Option(`${selected} (catégorie existante)`, selected));
         }
-        categorySelect.replaceChildren(...[...options.values()].map((name) => new Option(name, name)));
-        categorySelect.value = options.get(categoryKey(selected)) || 'News';
+        categorySelect.replaceChildren(...options);
+        categorySelect.value = selected || 'News';
     }
-    // A select shows every category, even when its current value is already filled.
     populateCategories();
     let refreshSequence = 0;
     let refreshPending = false;
@@ -121,9 +120,7 @@
         byId('datefollowme').value = dateInput(article ? new Date(Number(article.date) * 1000) : new Date());
         byId('lienfollowme').value = article?.lien || '';
         byId('descriptionfollowme').value = article?.description || '';
-        const category = article?.categorie || 'News';
-        populateCategories([...categorySelect.options].map((option) => option.value).concat(category));
-        categorySelect.value = [...categorySelect.options].find((option) => categoryKey(option.value) === categoryKey(category)).value;
+        populateCategories(article?.categorie || 'News');
         byId('nbCaracteres').textContent = byId('descriptionfollowme').value.length;
         byId('followme-form-error').textContent = '';
         dialog.showModal(); // Native top layer, focus trap, Escape, focus restoration.
@@ -187,9 +184,7 @@
             feed.setAttribute('aria-busy', 'false'); status.textContent = 'Export prêt à copier dans Hugo. Les trois actualités à la une restent à compléter.';
         } catch (error) { status.textContent = error.message; }
     });
-    request('findCategorie').then((rows) => {
-        populateCategories(rows.map((row) => row.categorie));
-    }).catch(() => { /* The complete default list is already available. */ });
+
     refresh();
     window.setInterval(async () => {
         if (document.hidden || dialog.open || byId('formatNews') || refreshPending) return;
