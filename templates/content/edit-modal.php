@@ -5,7 +5,7 @@
             <label for="titlefollowme">Titre</label><input required maxlength="255" type="text" id="titlefollowme" placeholder="Ce qui mérite d’être partagé" autofocus>
             <div class="followme-form-row"><div><label for="datefollowme">Date</label><input required type="date" id="datefollowme"></div><div><label for="categoriefollowme">Catégorie</label><select required id="categoriefollowme" aria-label="Catégorie">
                 <?php foreach ($_['categories'] as $category): ?>
-                    <option value="<?php p($category); ?>"><?php p($category); ?></option>
+                    <option value="<?php p($category); ?>"><?php p(\OCA\Followme\Service\CategoryCatalog::LABELS[$category]); ?></option>
                 <?php endforeach; ?>
             </select></div></div>
             <label for="lienfollowme">Lien de l’article</label><input required type="url" id="lienfollowme" placeholder="https://…">

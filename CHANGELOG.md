@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.2
+
+- Restore the nine original categories and their icon labels.
+- Stop adding categories from historical articles to the creation form.
+- Retain a historical category only when editing its article, without altering stored data.
+
 ## 1.3.1
 
 - Render default categories in PHP so the selector remains populated before JavaScript loads or when requests fail.
